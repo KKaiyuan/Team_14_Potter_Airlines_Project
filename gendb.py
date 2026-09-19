@@ -1,6 +1,6 @@
 import pandas as pd
 import random
-from datetime import date, datetime, timedelta
+from datetime import date, time, timedelta
 
 random.seed(42)
 
@@ -8,22 +8,33 @@ flights =[]
 size = [100, 150, 200, 250]
 cities = ["Toronto", "Vancouver", "Calgary", "Montreal", "Ottawa"]
 today = date.today()
+departure_hours = [time(hour=0, minute=0), time(hour=4, minute=0), 
+                   time(hour=8, minute=0), time(hour=12, minute=0), 
+                   time(hour=16, minute=0), time(hour=20, minute=0)]
 
 n=200
 
 for i in range(n):
     
     flight_id = "PA" + str(i)
+    
+    #Seats remaining  and capacity
     capacity = random.choice(size)
     seats_remaining = random.randint(0, capacity)
-    source, destination = random.sample(cities, 2)
-    dep_date = today + timedelta(days=random.randint(0, 365))
-
-    flights.append((flight_id,source, destination, capacity, seats_remaining, dep_date))
     
+    #Source and destination cities
+    source, destination = random.sample(cities, 2)
+    
+    #Time until departure
+    dep_date = today + timedelta(days=random.randint(0, 365))
+    dep_hour = random.choice(departure_hours)
+    
+
+    flights.append((flight_id,source, destination, capacity, seats_remaining, dep_date, dep_hour))
+
 # print(flights)
 
-flights_df = pd.DataFrame(flights, columns=["flight_id", "source", "destination", "capacity", "seats_remaining", "dep_date"])
+flights_df = pd.DataFrame(flights, columns=["flight_id", "source", "destination", "capacity", "seats_remaining", "dep_date", "dep_hour"])
 
 export_path = "flights.csv"
 flights_df.to_csv(export_path, index=False)
