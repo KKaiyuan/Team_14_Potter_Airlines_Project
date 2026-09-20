@@ -1,4 +1,4 @@
-flight_number,source,destination,capacity,seats_remaining
+flight_number,origin,destination,capacity,seats_remaining
 PA0,Calgary,Vancouver,150,6
 PA1,Toronto,Ottawa,175,35
 PA2,Toronto,Ottawa,250,108
