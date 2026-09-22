@@ -22,7 +22,7 @@ for i in range(n):
     
     #Seats remaining  and capacity
     capacity = random.choice(size)
-    seats_remaining = capacity  # Modified: bookings will account for every sold seat.
+    seats_remaining = random.randint(0, capacity)
     
     #Source and destination cities
     source, destination = random.sample(cities, 2)
