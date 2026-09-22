@@ -1,0 +1,1 @@
+Passed: syntax; notebook initialization and queries; 200 full-capacity initial flights; base-fare values; booking; cancellation; invalid ticket quantities; duplicate cancellation; concurrent booking/cancellation; rollback; rerun preservation; 20 demo orders; inventory/order reconciliation; database integrity.
