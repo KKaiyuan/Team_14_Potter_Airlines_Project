@@ -1,0 +1,71 @@
+flights_df = pd.DataFrame(flights, 
+                          columns=[
+                              flight_id", "base_fare", "source", "destination", 
+                              "capacity", "seats_remaining", "dep_date", "dep_hour"])
+
+# Assignment of route popularity scores based on source and destination cities
+route_popularity= {
+    frozenset(("Toronto", "Ottawa")): 0.6,
+    frozenset(("Toronto", "Vancouver")): 0.8,
+    frozenset(("Toronto", "Calgary")): 0.5,
+    frozenset(("Toronto", "Montreal")): 0.7,
+}
+# Assume 0.5 for routes not explicitly defined in the dictionary
+flights_df["route_popularity"] = [
+    route_popularity_scores.get(
+        frozenset((source, destination)), 0.5
+    )
+    for source, destination in zip(
+        flights_df["source"], flights_df["destination"]
+    )
+]
+
+# Calculate days until departure in fractional days
+departure_date = pd.to_datetime(flights_df["dep_date"].astype(str) + " " + flights_df["dep_hour"].astype(str))
+
+now = pd.Timestamp.now()
+flights_df["days_until_departure"] = (departure_date - now) / pd.Timedelta(days=1)
+
+def calculate_fare(base_fare, days_until_departure, seats_remaining, capacity):
+
+    if base_fare <= 0:
+        raise ValueError("base_fare must be greater than 0")
+    if capacity <= 0:
+        raise ValueError("capacity must be greater than 0")
+    if 0 < seats_remaining > capacity:
+        raise ValueError("seats_remaining must be between 0 and capacity")
+    if days_until_departure < 0:
+        return float ("nan")
+
+# Time factor
+    if days_until_departure < 4 / 24:
+        time_factor = 0.85
+    elif days_until_departure <= 1:
+        time_factor = 1.00
+    elif days_until_departure <= 7:
+        time_factor = 1.35
+    elif days_until_departure <= 21:
+        time_factor = 1.10
+    else:
+        time_factor = 1.00
+
+    load_factor = 1 - seats_remaining / capacity
+    capacity_factor = 1 + 0.45 * load_factor
+    demand_factor = 0.9 + 0.3 * route_popularity
+
+    final_fare = base_fare * time_factor * capacity_factor * demand_factor
+    return round(min(max(final_fare, 200), 1500),2)
+
+flights_df["fare"] = flights_df.apply(
+    lambda row: calculate_fare(
+        base_fare=row["base_fare"],
+        days_until_departure=row["days_until_departure"],
+        seats_remaining=row["seats_remaining"],
+        capacity=row["capacity"],
+        route_popularity=row["route_popularity"],
+    ),
+    axis=1,
+)
+
+flights_df.to_csv("flights.csv", index=False)
+
