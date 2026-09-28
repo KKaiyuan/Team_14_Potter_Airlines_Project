@@ -24,8 +24,8 @@ for i in range(n):
     capacity = random.choice(size)
     seats_remaining = random.randint(0, capacity)
     
-    #Source and destination cities
-    source, destination = random.sample(cities, 2)
+    #Origin and destination cities
+    origin, destination = random.sample(cities, 2)
     
     #Time until departure
     dep_date = today + timedelta(days=random.randint(0, 365))
@@ -33,13 +33,13 @@ for i in range(n):
     
 
     # Added: assigned distance and the agreed distance-based base fare.
-    distance_km = DISTANCE_KM[tuple(sorted([source, destination]))]
+    distance_km = DISTANCE_KM[tuple(sorted([origin, destination]))]
     fare = base_fare(distance_km)
-    flights.append((flight_id,source, destination, capacity, seats_remaining, dep_date, dep_hour, distance_km, fare))
+    flights.append((flight_id,origin, destination, capacity, seats_remaining, dep_date, dep_hour, distance_km, fare))
 
 # print(flights)
 
-flights_df = pd.DataFrame(flights, columns=["flight_id", "source", "destination", "capacity", "seats_remaining", "dep_date", "dep_hour", "distance_km", "base_fare"])
+flights_df = pd.DataFrame(flights, columns=["flight_id", "origin", "destination", "capacity", "seats_remaining", "dep_date", "dep_hour", "distance_km", "base_fare"])
 
 export_path = "flights.csv"
 flights_df.to_csv(export_path, index=False)
