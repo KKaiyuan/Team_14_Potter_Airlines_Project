@@ -18,7 +18,7 @@ n=800
 
 for i in range(n):
     
-    flight_id = "PA" + str(i)
+    flight_id = "PA" + str(random.randint(1, 399))
     
     #Seats remaining  and capacity
     capacity = random.choice(size)
