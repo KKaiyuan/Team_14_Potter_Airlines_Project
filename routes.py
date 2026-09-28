@@ -83,7 +83,28 @@ def build_routes_df(flights_df):
     return routes
 
 
+ROUTES_COLUMNS = {"source", "destination", "base_fare", "route_popularity"}
+
+
+def _table_columns(conn, table_name):
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return {row[1] for row in rows}
+
+
 def create_routes_table(conn):
+    """
+    Creates the routes table if missing. If one already exists with the
+    wrong columns (e.g. from before route_popularity was added), it's
+    dropped and recreated instead of silently left stale -- same
+    reasoning as database.create_flights_table.
+    """
+    existing = _table_columns(conn, "routes")
+    if existing and existing != ROUTES_COLUMNS:
+        print(f"Existing 'routes' table has an outdated schema "
+              f"({sorted(existing)}); dropping and recreating it.")
+        conn.execute("DROP TABLE routes")
+        conn.commit()
+
     conn.execute("""
         CREATE TABLE IF NOT EXISTS routes (
             source TEXT NOT NULL,

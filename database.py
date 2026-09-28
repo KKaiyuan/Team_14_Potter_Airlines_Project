@@ -22,7 +22,34 @@ def get_connection(db_path="flights_database.db"):
     return sqlite3.connect(db_path)
 
 
+FLIGHTS_COLUMNS = {
+    "flight_id", "source", "destination", "capacity",
+    "seats_remaining", "dep_date", "dep_hour",
+}
+
+
+def _table_columns(conn, table_name):
+    """Column names currently in a table, or an empty set if it doesn't exist."""
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return {row[1] for row in rows}  # row[1] is the column name
+
+
 def create_flights_table(conn):
+    """
+    Creates the flights table if missing. If a flights table already
+    exists but with the WRONG columns (e.g. left over from an earlier
+    version of this project that didn't have dep_date/dep_hour), it is
+    dropped and recreated -- CREATE TABLE IF NOT EXISTS alone would
+    silently keep the stale schema and every INSERT afterwards would
+    fail with "table flights has no column named ...".
+    """
+    existing = _table_columns(conn, "flights")
+    if existing and existing != FLIGHTS_COLUMNS:
+        print(f"Existing 'flights' table has an outdated schema "
+              f"({sorted(existing)}); dropping and recreating it.")
+        conn.execute("DROP TABLE flights")
+        conn.commit()
+
     conn.execute("""
         CREATE TABLE IF NOT EXISTS flights (
             flight_id TEXT PRIMARY KEY,
@@ -107,6 +134,25 @@ def book_seats(conn, flight_id, n=1, now=None):
     flight.book_seats(n, now=now)  # raises ValueError if invalid -- DB untouched
     update_seats_remaining(conn, flight_id, flight.seats_remaining)
     return flight.seats_remaining
+
+
+def cancel_seats(conn, flight_id, n=1):
+    """
+    Cancel a booking: give n seats back to a flight (the inverse of
+    book_seats). Cannot return more seats than the flight's capacity --
+    that would mean cancelling seats that were never booked. Raises
+    ValueError if invalid; the database is left unchanged in that case.
+    """
+    assert n > 0, "must cancel at least one seat"
+    row = select_flight_by_id(conn, flight_id)
+    new_count = row["seats_remaining"] + n
+    if new_count > row["capacity"]:
+        raise ValueError(
+            f"{flight_id}: cannot cancel {n} seat(s) -- only "
+            f"{row['capacity'] - row['seats_remaining']} are currently booked"
+        )
+    update_seats_remaining(conn, flight_id, new_count)
+    return new_count
 
 
 def delete_flight(conn, flight_id):
