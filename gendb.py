@@ -14,7 +14,7 @@ departure_hours = [time(hour=0, minute=0), time(hour=4, minute=0),
                    time(hour=8, minute=0), time(hour=12, minute=0), 
                    time(hour=16, minute=0), time(hour=20, minute=0)]
 
-n=200
+n=800
 
 for i in range(n):
     
