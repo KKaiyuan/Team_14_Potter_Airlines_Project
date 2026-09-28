@@ -2,6 +2,7 @@ import pandas as pd
 import holidays
 from config import SEASONAL_FACTOR
 
+
 # Added: read the eight-column flight dataset without creating a route table.
 flights_df = pd.read_csv("flights.csv")
 
