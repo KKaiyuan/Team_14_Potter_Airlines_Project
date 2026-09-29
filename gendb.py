@@ -99,8 +99,15 @@ for i in range(n):
         For the sake of this project, we will not include these constraints, i.e. these flights might be included.
         TODO in the future: add constraints not to include non-realistic flights
     """
-    # Origin and destination airport codes
-    origin_airport_code, destination_airport_code = random.sample(airport_codes, 2)
+    
+    origin_airport_code = ""
+    destination_airport_code = ""
+    # Ensure that none of the same airport code is repeated
+    while True:
+        # Origin and destination airport codes
+        origin_airport_code, destination_airport_code = random.sample(airport_codes, 2)
+        if origin_airport_code != destination_airport_code:
+            break
     
     # Origin and destination cities
     origin_city = airport_code_to_city_dict[origin_airport_code]
