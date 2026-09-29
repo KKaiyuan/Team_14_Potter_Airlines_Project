@@ -119,7 +119,7 @@ for i in range(n):
     
 
     # Added: assigned distance and the agreed distance-based base fare.
-    distance_km = DISTANCE_KM[tuple(sorted([origin, destination]))]
+    distance_km = DISTANCE_KM[tuple(sorted([origin_city, destination_city]))]
     fare = base_fare(distance_km)
     flights.append((flight_id, origin_city, origin_airport_code, destination_city, destination_airport_code, capacity, seats_remaining, dep_date, dep_hour, distance_km, fare))
 
