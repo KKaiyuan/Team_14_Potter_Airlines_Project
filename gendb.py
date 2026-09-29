@@ -80,14 +80,33 @@ departure_hours = [time(hour=0, minute=0), time(hour=4, minute=0),
 
 n=800
 
-for i in range(n):
-    
+seen_flight_date_pairs = set()
+
+flights = []
+i = 0
+max_attempts_per_row = 1000  # safety valve to avoid infinite loop if space gets too crowded
+
+while i < n:
     flight_id = "PA" + str(random.randint(1, 399))
-    
+    dep_date = today + timedelta(days=random.randint(0, 365))
+
+    # Retry if this (flight_id, date) combo already exists
+    attempts = 0
+    while (flight_id, dep_date) in seen_flight_date_pairs:
+        flight_id = "PA" + str(random.randint(1, 399))
+        dep_date = today + timedelta(days=random.randint(0, 365))
+        attempts += 1
+        if attempts >= max_attempts_per_row:
+            raise RuntimeError(
+                "Could not find a unique (flight_id, date) pair after many attempts — "
+                "consider increasing the flight_id range or date range."
+            )
+
+    seen_flight_date_pairs.add((flight_id, dep_date))
+
     # Seats remaining and capacity
     capacity = random.choice(size)
     seats_remaining = random.randint(0, capacity)
-    
 
     """
     NOTE by Kevin: 
@@ -108,20 +127,28 @@ for i in range(n):
         origin_airport_code, destination_airport_code = random.sample(airport_codes, 2)
         if origin_airport_code != destination_airport_code:
             break
-    
+
     # Origin and destination cities
     origin_city = airport_code_to_city_dict[origin_airport_code]
     destination_city = airport_code_to_city_dict[destination_airport_code]
-    
-    # Time until departure
-    dep_date = today + timedelta(days=random.randint(0, 365))
-    dep_hour = random.choice(departure_hours)
-    
 
-    # Added: assigned distance and the agreed distance-based base fare.
+    # Time until departure
+    dep_hour = random.choice(departure_hours)
+
+    # Assigned distance and the agreed distance-based base fare
     distance_km = DISTANCE_KM[tuple(sorted([origin_city, destination_city]))]
     fare = base_fare(distance_km)
-    flights.append((flight_id, origin_city, origin_airport_code, destination_city, destination_airport_code, capacity, seats_remaining, dep_date, dep_hour, distance_km, fare))
+
+    flights.append((
+        flight_id, 
+        origin_city, origin_airport_code, 
+        destination_city, destination_airport_code, 
+        capacity, seats_remaining, 
+        dep_date, dep_hour, 
+        distance_km, fare
+    ))
+
+    i += 1
 
 # print(flights)
 
