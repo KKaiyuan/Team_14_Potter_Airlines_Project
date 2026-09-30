@@ -14,10 +14,12 @@ def create_tables(conn):
     conn.execute("""
         CREATE TABLE routes (
             route_uuid TEXT PRIMARY KEY,
-            origin TEXT NOT NULL,
-            destination TEXT NOT NULL,
+            origin_airport_code TEXT NOT NULL,
+            destination_airport_code TEXT NOT NULL,
+            origin_city TEXT NOT NULL,
+            destination_city TEXT NOT NULL,
             base_fare DOUBLE,
-            UNIQUE(origin, destination)
+            UNIQUE(origin_airport_code, destination_airport_code)
         );
     """)
     conn.execute("""
@@ -27,6 +29,9 @@ def create_tables(conn):
             flight_number TEXT,
             capacity INTEGER,
             seats_remaining INTEGER,
+            dep_date DATE,
+            dep_hour INTEGER,
+            distance_km INTEGER,
             FOREIGN KEY (route_uuid) REFERENCES routes(route_uuid)
         );
     """)
