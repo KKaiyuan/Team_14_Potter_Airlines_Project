@@ -20,25 +20,24 @@ flights_df = pd.read_csv("flights.csv")
 
 # These popularity scores are project assumptions, not observed traffic estimates.
 route_popularity_scores = {
-    frozenset(("Toronto", "Ottawa")): 0.6,
-    frozenset(("Toronto", "Vancouver")): 0.8,
-    frozenset(("Toronto", "Calgary")): 0.5,
-    frozenset(("Toronto", "Montreal")): 0.7,
-    # Added: make the previous 0.5 default explicit for the other six city pairs.
-    frozenset(("Vancouver", "Calgary")): 0.5,
-    frozenset(("Vancouver", "Montreal")): 0.5,
-    frozenset(("Vancouver", "Ottawa")): 0.5,
-    frozenset(("Calgary", "Montreal")): 0.5,
-    frozenset(("Calgary", "Ottawa")): 0.5,
-    frozenset(("Montreal", "Ottawa")): 0.5,
+    ("Ottawa", "Toronto"): 0.6,
+    ("Toronto", "Vancouver"): 0.8,
+    ("Calgary", "Toronto"): 0.5,
+    ("Montreal", "Toronto"): 0.7,
+    ("Calgary", "Vancouver"): 0.5,
+    ("Montreal", "Vancouver"): 0.5,
+    ("Ottawa", "Vancouver"): 0.5,
+    ("Calgary", "Montreal"): 0.5,
+    ("Calgary", "Ottawa"): 0.5,
+    ("Montreal", "Ottawa"): 0.5,
 }
 
 flights_df["route_popularity"] = [
     route_popularity_scores.get(
-        frozenset((source, destination)), 0.5
+        tuple(sorted((origin, destination))), 0.5
     )
-    for source, destination in zip(
-        flights_df["source"], flights_df["destination"]
+    for origin, destination in zip(
+        flights_df["origin"], flights_df["destination"]
     )
 ]
 
@@ -50,7 +49,6 @@ departure_date = pd.to_datetime(
 
 flights_df["day_of_week"] = departure_date.dt.dayofweek
 now = pd.Timestamp.now()
-
 
 flights_df["days_until_departure"] = (
     departure_date - now
@@ -137,9 +135,12 @@ def calculate_fare(
 
     # Return: fare, applied discount factor, discount eligibility.
     if days_until_departure <= 0:
-        return float("nan"), 1.00, False
+        # return float("nan"), 1.00, False
+        return -1 # TODO: deal with past flights
 
-    if days_until_departure <= 1:
+    if days_until_departure < 4 / 24:
+        time_factor = 0.85
+    elif days_until_departure <= 1:
         time_factor = 1.00
     elif days_until_departure <= 7:
         time_factor = 1.35
@@ -227,4 +228,4 @@ flights_df[
     result_type="expand",
 )
 
-flights_df.to_csv("priced_flights.csv", index=False)
+# flights_df.to_csv("priced_flights.csv", index=False)
