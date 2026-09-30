@@ -178,3 +178,5 @@ flights_df = pd.DataFrame(flights, columns=["flight_id", "origin_city", "origin_
 
 export_path = "flights.csv"
 flights_df.to_csv(export_path, index=False)
+
+print(f"Saved {n} randomly-generated flights to \"flights.csv\" file.")
