@@ -13,26 +13,27 @@ def create_tables(conn):
 
     conn.execute("""
         CREATE TABLE routes (
-            route_uuid TEXT PRIMARY KEY,
             origin_airport_code TEXT NOT NULL,
             destination_airport_code TEXT NOT NULL,
             origin_city TEXT NOT NULL,
             destination_city TEXT NOT NULL,
             base_fare DOUBLE,
-            UNIQUE(origin_airport_code, destination_airport_code)
+            PRIMARY KEY (origin_airport_code, destination_airport_code)
         );
     """)
     conn.execute("""
         CREATE TABLE flights (
-            flight_uuid TEXT PRIMARY KEY,
-            route_uuid TEXT NOT NULL,
-            flight_number TEXT,
+            flight_id TEXT NOT NULL,
+            dep_date DATE NOT NULL,
+            dep_hour INTEGER,
+            origin_airport_code TEXT NOT NULL,
+            destination_airport_code TEXT NOT NULL,
             capacity INTEGER,
             seats_remaining INTEGER,
-            dep_date DATE,
-            dep_hour INTEGER,
             distance_km INTEGER,
-            FOREIGN KEY (route_uuid) REFERENCES routes(route_uuid)
+            PRIMARY KEY (flight_id, dep_date),
+            FOREIGN KEY (origin_airport_code, destination_airport_code)
+                REFERENCES routes(origin_airport_code, destination_airport_code)
         );
     """)
     conn.commit()
