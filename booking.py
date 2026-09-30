@@ -1,42 +1,38 @@
 import sqlite3
 
-def book_flight(flight_id, amount_of_tickets_booked):
+def book_flight(flight_id, dep_date, amount_of_tickets_booked):
     
     conn = sqlite3.connect("flights_database.db") # Fixed: match the notebook database name.
     cursor = conn.cursor()
         
     cursor.execute(
-                "SELECT seats_remaining FROM flights WHERE flight_id = ?",
-                (flight_id,)
+                "SELECT seats_remaining FROM flights WHERE flight_id = ? AND dep_date = ?",
+                (flight_id, dep_date)
                 )
     
     flight = cursor.fetchone()
     
     #Check if flight exists
     if flight == None:
-        print("Flight not found.")
         conn.close()
-        return
+        raise ValueError("Flight not found.")
     
     seats_remaining = flight[0]
     
     #Check if there are still seats remaining
     if seats_remaining <= 0:
-        print("No more available seats.")
         conn.close()
-        return
+        raise ValueError("No more available seats.")
     
     # Modified: ticket quantities must be positive whole numbers.
     if type(amount_of_tickets_booked) is not int or amount_of_tickets_booked <= 0:
-        print("Amount of tickets must be greater than 0.")
         conn.close()
-        return
+        raise ValueError("Amount of tickets must be greater than 0.")
     
     #Check if there are enough seats for the booking size
     if amount_of_tickets_booked > seats_remaining:
-        print("Not enough available seats.")
         conn.close()
-        return
+        raise ValueError("Not enough available seats.")
     
     # Added: record the order and deduct seats together, without overselling.
     
@@ -44,26 +40,25 @@ def book_flight(flight_id, amount_of_tickets_booked):
     cursor.execute("""
         UPDATE flights
         SET seats_remaining = seats_remaining - ?
-        WHERE flight_id = ? AND seats_remaining >= ?
+        WHERE flight_id = ? AND dep_date = ? AND seats_remaining >= ?
         """,
-        (amount_of_tickets_booked, flight_id, amount_of_tickets_booked)
+        (amount_of_tickets_booked, flight_id, dep_date, amount_of_tickets_booked)
         )
     if cursor.rowcount == 0:
-        print("Not enough available seats.")
         conn.close()
-        return
+        raise ValueError("Not enough available seats.")
     
     cursor.execute("""
-        INSERT INTO bookings (flight_id, tickets, status)
-        VALUES (?, ?, 'confirmed')
-        """, (flight_id, amount_of_tickets_booked))
+        INSERT INTO bookings (flight_id, dep_date, tickets, status)
+        VALUES (?, ?, ?, 'confirmed')
+        """, (flight_id, dep_date, amount_of_tickets_booked))
     booking_id = cursor.lastrowid
     
     conn.commit()
     conn.close()
 
     print("Booking Successful!")
-    return booking_id  # Added: identify this order for later cancellation.
+    return booking_id, seats_remaining-amount_of_tickets_booked  # Added: identify this order for later cancellation.
 
 
 # Added: cancel an existing order and restore its seats exactly once.
