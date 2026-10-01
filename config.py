@@ -31,3 +31,25 @@ SEASONAL_FACTOR = {
     11: 0.9982,
     12: 0.9604,
 }
+
+city_codes = [
+    # Ontario: 
+    "Toronto - YYZ", "Toronto - YTZ", # Toronto
+    "Ottawa - YOW", # Ottawa
+    "Waterloo Region - YKF", # Waterloo Region
+    "London, Ontario - YXU", # London, Ontario
+    "Hamilton - YHM", # Hamilton
+    # British Columbia: 
+    "Vancouver - YVR", # Vancouver
+    "Abbotsford - YXX", # Abbotsford
+    "Kelowna - YLW", # Kelowna
+    "Victoria - YYJ", # Victoria
+    "Nanaimo - YCD", # Nanaimo
+    "Prince George - YXS", # Prince George
+    # Alberta: 
+    "Calgary - YYC", # Calgary
+    "Edmonton - YEG", # Edmonton
+    # Quebec: 
+    "Montreal - YUL", "Montreal - YHU", "Montreal - YMX", # Montreal
+    "Quebec City - YQB" # Quebec City
+]

@@ -1,33 +1,44 @@
 import pandas as pd
 import holidays
-from config import SEASONAL_FACTOR
-
+SEASONAL_FACTOR = {
+    1: 1.00,   # January
+    2: 1.00,   # February
+    3: 1.00,   # March
+    4: 1.00,   # April
+    5: 1.00,   # May
+    6: 1.20,   # June
+    7: 1.20,   # July
+    8: 1.20,   # August
+    9: 1.00,   # September
+    10: 1.00,  # October
+    11: 1.00,  # November
+    12: 1.20,  # December
+}
 
 # Added: read the eight-column flight dataset without creating a route table.
 flights_df = pd.read_csv("flights.csv")
 
 # These popularity scores are project assumptions, not observed traffic estimates.
 route_popularity_scores = {
-    ("Ottawa", "Toronto"): 0.6,
-    ("Toronto", "Vancouver"): 0.8,
-    ("Calgary", "Toronto"): 0.5,
-    ("Montreal", "Toronto"): 0.7,
-    ("Calgary", "Vancouver"): 0.5,
-    ("Montreal", "Vancouver"): 0.5,
-    ("Ottawa", "Vancouver"): 0.5,
-    ("Calgary", "Montreal"): 0.5,
-    ("Calgary", "Ottawa"): 0.5,
-    ("Montreal", "Ottawa"): 0.5,
+    frozenset(("Toronto", "Ottawa")): 0.6,
+    frozenset(("Toronto", "Vancouver")): 0.8,
+    frozenset(("Toronto", "Calgary")): 0.5,
+    frozenset(("Toronto", "Montreal")): 0.7,
+    # Added: make the previous 0.5 default explicit for the other six city pairs.
+    frozenset(("Vancouver", "Calgary")): 0.5,
+    frozenset(("Vancouver", "Montreal")): 0.5,
+    frozenset(("Vancouver", "Ottawa")): 0.5,
+    frozenset(("Calgary", "Montreal")): 0.5,
+    frozenset(("Calgary", "Ottawa")): 0.5,
+    frozenset(("Montreal", "Ottawa")): 0.5,
 }
-
-
 
 flights_df["route_popularity"] = [
     route_popularity_scores.get(
-        tuple(sorted((origin, destination))), 0.5
+        frozenset((source, destination)), 0.5
     )
-    for origin, destination in zip(
-        flights_df["origin"], flights_df["destination"]
+    for source, destination in zip(
+        flights_df["source"], flights_df["destination"]
     )
 ]
 
@@ -132,3 +143,6 @@ flights_df["fare"] = flights_df.apply(
     ),
     axis=1,
 )
+
+# Modified: keep the original flight dataset at eight columns.
+flights_df.to_csv("priced_flights.csv", index=False)

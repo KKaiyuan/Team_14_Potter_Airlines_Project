@@ -1,7 +1,19 @@
 import pandas as pd
 import holidays
-from config import SEASONAL_FACTOR
-
+SEASONAL_FACTOR = {
+    1: 1.00,   # January
+    2: 1.00,   # February
+    3: 1.00,   # March
+    4: 1.00,   # April
+    5: 1.00,   # May
+    6: 1.20,   # June
+    7: 1.20,   # July
+    8: 1.20,   # August
+    9: 1.00,   # September
+    10: 1.00,  # October
+    11: 1.00,  # November
+    12: 1.20,  # December
+}
 
 # Added: read the eight-column flight dataset without creating a route table.
 flights_df = pd.read_csv("flights.csv")
@@ -20,8 +32,6 @@ route_popularity_scores = {
     ("Montreal", "Ottawa"): 0.5,
 }
 
-
-
 flights_df["route_popularity"] = [
     route_popularity_scores.get(
         tuple(sorted((origin, destination))), 0.5
@@ -37,6 +47,7 @@ departure_date = pd.to_datetime(
     + flights_df["dep_hour"].astype(str)
 )
 
+flights_df["day_of_week"] = departure_date.dt.dayofweek
 now = pd.Timestamp.now()
 
 flights_df["days_until_departure"] = (
@@ -57,6 +68,39 @@ flights_df["holiday"] = [
     for day in departure_date.dt.date
 ]
 
+def calculate_discount(
+    days_until_departure,
+    seats_remaining,
+    capacity,
+    day_of_week
+):
+    if days_until_departure <= 0 or seats_remaining <= 0:
+        return 1.00
+    
+    load_factor = 1 - seats_remaining / capacity
+
+    early_bird_discount = (
+        0.9
+        if days_until_departure >= 60 and load_factor < 0.30
+        else 1.00
+    )  
+
+    midweek_discount = (
+        0.95
+        if day_of_week in [1, 2] else 1.00
+    )
+
+    last_minute_discount = (
+        0.85 if days_until_departure < 4 / 24 else 1.00
+    )
+
+    return min(
+        early_bird_discount,
+        midweek_discount,
+        last_minute_discount
+    )
+
+
 
 def calculate_fare(
     base_fare,
@@ -65,7 +109,9 @@ def calculate_fare(
     capacity,
     route_popularity,
     seasonal_factor,
-    holiday=1.0,  # Added: default to no holiday premium.
+    holiday=1.0,
+    day_of_week=0
+     # Added: default to no holiday premium.
 ):
     if base_fare <= 0:
         raise ValueError("base_fare must be greater than 0")
@@ -87,8 +133,10 @@ def calculate_fare(
     if holiday <= 0:
         raise ValueError("holiday must be greater than 0")
 
+    # Return: fare, applied discount factor, discount eligibility.
     if days_until_departure <= 0:
-        return float("nan")
+        # return float("nan"), 1.00, False
+        return -1 # TODO: deal with past flights
 
     if days_until_departure < 4 / 24:
         time_factor = 0.85
@@ -105,19 +153,47 @@ def calculate_fare(
     capacity_factor = 1 + 0.45 * load_factor
     demand_factor = 0.9 + 0.3 * route_popularity
 
-    final_fare = (
+    fare_before_discount = (
         base_fare
         * time_factor
         * capacity_factor
         * demand_factor
         * seasonal_factor
-        * holiday  # Added: apply the holiday premium before the fare limits.
+        * holiday
+    )
+
+    discount_factor = calculate_discount(
+        days_until_departure,
+        seats_remaining,
+        capacity,
+        day_of_week,
     )
 
     min_fare = base_fare * 0.8
     max_fare = 1500
 
-    return round(min(max(final_fare, min_fare), max_fare), 2)
+    discounted_fare = fare_before_discount * discount_factor
+
+    # A discount is eligible only if the discounted fare is above the minimum fare and the factor is less than 1.00. 
+    discount_eligible = (
+        discount_factor < 1.00
+        and discounted_fare >= min_fare
+    )
+
+    if discount_eligible:
+        final_fare = discounted_fare
+    else:
+        # Reject the discount and restore the undiscounted price.
+        discount_factor = 1.00
+        final_fare = fare_before_discount
+
+    final_fare = round(
+        min(max(final_fare, min_fare), max_fare),
+        2,
+    )
+
+    return final_fare, discount_factor, discount_eligible
+
 
 
 flights_df["fare"] = flights_df.apply(
@@ -128,7 +204,28 @@ flights_df["fare"] = flights_df.apply(
         capacity=row["capacity"],
         route_popularity=row["route_popularity"],
         seasonal_factor=row["seasonal_factor"],
-        holiday=row["holiday"],  # Added: pass the departure-day holiday factor.
+        holiday=row["holiday"],
+        day_of_week=row["day_of_week"]
+         # Added: pass the departure-day holiday factor.
     ),
     axis=1,
 )
+
+flights_df[
+    ["fare", "discount_factor", "discount_eligible"]
+] = flights_df.apply(
+    lambda row: calculate_fare(
+        base_fare=row["base_fare"],
+        days_until_departure=row["days_until_departure"],
+        seats_remaining=row["seats_remaining"],
+        capacity=row["capacity"],
+        route_popularity=row["route_popularity"],
+        seasonal_factor=row["seasonal_factor"],
+        holiday=row["holiday"],
+        day_of_week=row["day_of_week"],
+    ),
+    axis=1,
+    result_type="expand",
+)
+
+# flights_df.to_csv("priced_flights.csv", index=False)
