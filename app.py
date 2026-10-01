@@ -32,7 +32,25 @@ if "message" in st.session_state:
     st.success(st.session_state.pop("message"))
 
 # Added: a separate view of persistent orders, including sold-out flights.
-page = st.sidebar.radio("Page", ["Search flights", "Booked flights"])
+# page = st.sidebar.radio("Page", ["Search flights", "Booked flights"])
+
+# Modified: full-width navigation buttons highlight the selected page.
+if "page" not in st.session_state:
+    st.session_state.page = "Search flights"
+
+st.sidebar.subheader("Menu")
+for label, icon in [("Search flights", ":material/search:"),
+                    ("Booked flights", ":material/confirmation_number:")]:
+    if st.sidebar.button(
+        label, icon=icon, use_container_width=True,
+        type="primary" if st.session_state.page == label else "secondary",
+        key=f"nav_{label}",
+    ):
+        st.session_state.page = label
+        st.rerun()
+
+page = st.session_state.page
+
 if page == "Booked flights":
     st.subheader("Booked flights")
     st.caption("Shared project booking list. Cancelling an order cancels all its tickets.")
