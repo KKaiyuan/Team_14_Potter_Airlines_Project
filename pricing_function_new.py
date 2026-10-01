@@ -66,7 +66,7 @@ def price_flights(flights_df, now=None):
             tuple(sorted((origin_city, destination_city))), 0.5
         )
         for origin_city, destination_city in zip(
-            flights_df["origin_city"], flights_df["destination_city_city"]
+            flights_df["origin_city"], flights_df["destination_city"]
         )
     ]
 
@@ -247,22 +247,22 @@ def calculate_fare(
 
 
 
-flights_df[
-    ["fare", "discount_factor", "discount_eligible"]
-] = flights_df.apply(
-    lambda row: calculate_fare(
-        base_fare=row["base_fare"],
-        days_until_departure=row["days_until_departure"],
-        seats_remaining=row["seats_remaining"],
-        capacity=row["capacity"],
-        route_popularity=row["route_popularity"],
-        seasonal_factor=row["seasonal_factor"],
-        holiday=row["holiday"],
-        day_of_week=row["day_of_week"],
-    ),
-    axis=1,
-    result_type="expand",
-)
+# flights_df[
+#     ["fare", "discount_factor", "discount_eligible"]
+# ] = flights_df.apply(
+#     lambda row: calculate_fare(
+#         base_fare=row["base_fare"],
+#         days_until_departure=row["days_until_departure"],
+#         seats_remaining=row["seats_remaining"],
+#         capacity=row["capacity"],
+#         route_popularity=row["route_popularity"],
+#         seasonal_factor=row["seasonal_factor"],
+#         holiday=row["holiday"],
+#         day_of_week=row["day_of_week"],
+#     ),
+#     axis=1,
+#     result_type="expand",
+# )
 
 # flights_df.to_csv("priced_flights.csv", index=False)
 
