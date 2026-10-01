@@ -38,6 +38,18 @@ def create_tables(conn):
                 REFERENCES routes(origin_airport_code, destination_airport_code)
         );
     """)
+    # Added: active orders reference one flight occurrence, not just a flight number.
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS bookings (
+            booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            flight_id TEXT NOT NULL,
+            dep_date DATE NOT NULL,
+            tickets INTEGER NOT NULL CHECK (tickets > 0),
+            unit_fare REAL NOT NULL CHECK (unit_fare > 0),
+            booked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (flight_id, dep_date) REFERENCES flights(flight_id, dep_date)
+        );
+    """)
     conn.commit()
 
 def load_data_into_tables(conn, flights_df):
@@ -91,6 +103,22 @@ def load_data_into_tables(conn, flights_df):
     )
     conn.commit()
     print(f"Loaded {len(flight_insert_rows)} flights.")
+
+# # Added: initialize once; subsequent UI reruns never reload inventory from CSV.
+# def initialize_database():
+#     conn = sqlite3.connect(DB_PATH)
+#     try:
+#         conn.execute("PRAGMA foreign_keys = ON")
+#         exists = conn.execute(
+#             "SELECT name FROM sqlite_master WHERE type = ? AND name = ?",
+#             ("table", "flights"),
+#         ).fetchone()
+#         create_tables(conn)
+#         if exists is None:
+#             load_data_into_tables(conn, load_csv(CSV_PATH))
+#     finally:
+#         conn.close()
+
 
 if __name__ == "__main__":
     conn = sqlite3.connect(DB_PATH)
