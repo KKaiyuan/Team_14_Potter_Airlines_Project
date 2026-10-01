@@ -13,7 +13,7 @@ import base64
 import os
 
 # st.set_page_config(page_title="Potter Airlines", page_icon="\U0001f9f9", layout="wide")
-# Acknowledgement: Potter Airline brand icon designed by Kevin Kaiyuan Chen
+# Acknowledgement: Potter Airlines brand icon designed by Kevin Kaiyuan Chen
 st.set_page_config(
     page_title="PotterAirline",
     page_icon="assets/potterairline_favicon_italic_v3_32.png", # NOTE by Kevin: This sets the custom icon for the browser tab of this app
