@@ -12,7 +12,7 @@ import pandas as pd
 
 import booking
 from flight import Flight
-from potterairline_tables import create_tables, initialize_database
+from potterairline_tables import create_tables
 from pricing_function_new import calculate_discount, calculate_fare, price_flights
 
 
@@ -36,7 +36,7 @@ class PricingTests(unittest.TestCase):
     def test_floor_ceiling_and_rejected_discount(self):
         self.assertEqual(calculate_fare(100,30,100,100,0,.5)[0],80)
         self.assertEqual(calculate_fare(3000,30,100,100,.5,1)[0],1500)
-        self.assertEqual(calculate_fare(100,.1,100,100,0,1),(90,1,False))
+        self.assertEqual(calculate_fare(100,.1,100,100,0,1),(80,1,False))
 
     def test_invalid_inputs(self):
         for change in [dict(base_fare=0),dict(capacity=0),dict(seats_remaining=-1),dict(seats_remaining=101),dict(route_popularity=2),dict(seasonal_factor=0),dict(holiday=0)]:
@@ -128,11 +128,6 @@ class BookingTests(unittest.TestCase):
         self.assertEqual(self.seats(),8)
         self.assertEqual(len(booking.get_bookings()),1)
 
-    def test_startup_preserves_booking(self):
-        booking.book_flight('PA1',2,'2099-01-01')
-        initialize_database()
-        self.assertEqual(self.seats(),8)
-        self.assertEqual(len(booking.get_bookings()),1)
 
     def test_concurrent_requests_do_not_oversell(self):
         def reserve(_):

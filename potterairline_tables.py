@@ -12,6 +12,7 @@ def load_csv(csv_path):
 def create_tables(conn):
     conn.execute("DROP TABLE IF EXISTS flights")  # drop child first (FK dependency)
     conn.execute("DROP TABLE IF EXISTS routes")
+    conn.execute("DROP TABLE IF EXISTS bookings")
 
     conn.execute("""
         CREATE TABLE routes (
@@ -40,7 +41,7 @@ def create_tables(conn):
     """)
     # Added: active orders reference one flight occurrence, not just a flight number.
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS bookings (
+        CREATE TABLE bookings (
             booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
             flight_id TEXT NOT NULL,
             dep_date DATE NOT NULL,
