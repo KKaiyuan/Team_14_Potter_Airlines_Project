@@ -1,9 +1,8 @@
 import sqlite3
-import pandas as pd
+import importlib
 
-from gendb import generate_flights_csv          # step 1
-from pricing_function_new import calculate_fare  # step 3
-from potterairline_tables import create_tables, load_data  # steps 4-5 helpers
+from gendb import generate_flights_csv
+from potterairline_tables import create_tables, load_data
 
 CSV_PATH = "flights.csv"
 DB_PATH = "flights_database.db"
@@ -13,15 +12,16 @@ def run_pipeline(n_flights=800):
     print("Step 1: Generating flights.csv...")
     generate_flights_csv(n=n_flights, output_path=CSV_PATH)
 
-    # 2. Load CSV into a pandas DataFrame
-    print("Step 2: Loading CSV into DataFrame...")
-    flights_df = pd.read_csv(CSV_PATH)
+    # 2 & 3. pricing_function.py reads flights.csv itself (using
+    #        origin_city/destination_city) and computes fare/route_popularity/
+    #        etc. at import time -- importing it IS steps 2+3 combined.
+    print("Step 2-3: Loading CSV and calculating fares (via pricing_function.py)...")
+    import pricing_function
+    importlib.reload(pricing_function)  # ensures it re-reads the CSV on repeat runs
 
-    # 3. Calculate prices (with discounting) -> updates the DataFrame
-    print("Step 3: Calculating fares...")
-    flights_df = calculate_fare(flights_df)
+    flights_df = pricing_function.flights_df  # grab the computed DataFrame
 
-    # 4. Load DataFrame into SQL tables (DataFrame itself isn't persisted anywhere)
+    # 4. Load DataFrame into SQL tables
     print("Step 4: Loading data into SQL tables...")
     conn = sqlite3.connect(DB_PATH)
     try:
