@@ -2,8 +2,8 @@ import pandas as pd
 import holidays
 from config import SEASONAL_FACTOR
 
-# Added: read the eight-column flight dataset without creating a route table.
-flights_df = pd.read_csv("flights.csv")
+# # Added: read the eight-column flight dataset without creating a route table.
+# flights_df = pd.read_csv("flights.csv")
 
 # These popularity scores are project assumptions, not observed traffic estimates.
 route_popularity_scores = {
@@ -19,41 +19,41 @@ route_popularity_scores = {
     ("Montreal", "Ottawa"): 0.5,
 }
 
-flights_df["route_popularity"] = [
-    route_popularity_scores.get(
-        tuple(sorted((origin_city, destination_city))), 0.5
-    )
-    for origin_city, destination_city in zip(
-        flights_df["origin_city"], flights_df["destination_city"]
-    )
-]
+# flights_df["route_popularity"] = [
+#     route_popularity_scores.get(
+#         tuple(sorted((origin_city, destination_city))), 0.5
+#     )
+#     for origin_city, destination_city in zip(
+#         flights_df["origin_city"], flights_df["destination_city"]
+#     )
+# ]
 
-departure_date = pd.to_datetime(
-    flights_df["dep_date"].astype(str)
-    + " "
-    + flights_df["dep_hour"].astype(str)
-)
+# departure_date = pd.to_datetime(
+#     flights_df["dep_date"].astype(str)
+#     + " "
+#     + flights_df["dep_hour"].astype(str)
+# )
 
-flights_df["day_of_week"] = departure_date.dt.dayofweek
-now = pd.Timestamp.now()
+# flights_df["day_of_week"] = departure_date.dt.dayofweek
+# now = pd.Timestamp.now()
 
-flights_df["days_until_departure"] = (
-    departure_date - now
-) / pd.Timedelta(days=1)
+# flights_df["days_until_departure"] = (
+#     departure_date - now
+# ) / pd.Timedelta(days=1)
 
-# Added: use the shared seasonal factor for the departure month.
-flights_df["seasonal_factor"] = (
-    departure_date.dt.month.map(SEASONAL_FACTOR)
-)
+# # Added: use the shared seasonal factor for the departure month.
+# flights_df["seasonal_factor"] = (
+#     departure_date.dt.month.map(SEASONAL_FACTOR)
+# )
 
-# Added: use Canadian public holidays without province-specific additions.
-# Reference: https://holidays.readthedocs.io/en/latest/auto_gen_docs/canada/
-canada_holidays = holidays.CA(observed=True)
-# Added: the 20% departure-day premium is a project assumption.
-flights_df["holiday"] = [
-    1.2 if day in canada_holidays else 1.0
-    for day in departure_date.dt.date
-]
+# # Added: use Canadian public holidays without province-specific additions.
+# # Reference: https://holidays.readthedocs.io/en/latest/auto_gen_docs/canada/
+# canada_holidays = holidays.CA(observed=True)
+# # Added: the 20% departure-day premium is a project assumption.
+# flights_df["holiday"] = [
+#     1.2 if day in canada_holidays else 1.0
+#     for day in departure_date.dt.date
+# ]
 
 
 # Modified: price current database rows without reading or overwriting CSV on import.
@@ -186,8 +186,8 @@ def calculate_fare(
 
     # Return: fare, applied discount factor, discount eligibility.
     if days_until_departure <= 0:
-        # return float("nan"), 1.00, False
-        return -1 # TODO: deal with past flights
+        return float("nan"), 1.00, False
+        # return -1 # TODO: deal with past flights
 
     if days_until_departure < 4 / 24:
         time_factor = 0.85
