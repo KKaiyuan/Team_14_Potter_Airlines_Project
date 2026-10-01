@@ -7,7 +7,18 @@ import booking
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Potter Airlines", page_icon="\U0001f9f9", layout="wide")
+import base64
+
+import base64
+import os
+
+# st.set_page_config(page_title="Potter Airlines", page_icon="\U0001f9f9", layout="wide")
+# Acknowledgement: Potter Airline brand icon designed by Kevin Kaiyuan Chen
+st.set_page_config(
+    page_title="PotterAirline",
+    page_icon="assets/potterairline_favicon_italic_v3_32.png", # NOTE by Kevin: This sets the custom icon for the browser tab of this app
+    layout="wide",
+)
 
 
 # Modified: read live SQLite inventory; the backend owns all pricing and SQL.
@@ -18,7 +29,31 @@ def get_priced_flights():
 # ---------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------
-st.title("\U0001f9f9 Potter Airlines")
+# st.title("\U0001f9f9 Potter Airlines")
+
+# Function to convert image file to base64 encoding
+def get_image_base64(path):
+    with open(path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode()
+
+# Resolve absolute path to assets/potterairline_favicon_32.png
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+icon_path = os.path.join(BASE_DIR, "assets", "potterairline_logo_italic_v3.png")
+
+img_base64 = get_image_base64(icon_path)
+
+# Render HTML header with unsafe_allow_html=True
+st.markdown(
+    f"""
+    <h1 style="display: flex; align-items: center; gap: 12px; margin-bottom: 1rem;">
+        <img src="data:image/png;base64,{img_base64}" width="40" height="40" style="object-fit: contain;">
+        <span>Potter Airlines</span>
+    </h1>
+    """,
+    unsafe_allow_html=True
+)
+
+
 # Modified: show customer-facing text instead of Audrey's backend module names.
 st.caption("Search flights, compare fares, and choose your seats. Prices are in CAD.")
 # Added: safe startup adds the bookings table without resetting flight inventory.
