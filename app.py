@@ -5,17 +5,12 @@ import booking
 
 from config import city_codes
 from functional_queries import search_flights, get_flight_date_range
-# from potterairline_tables import initialize_database
+
 
 import pandas as pd
 import streamlit as st
 
 st.set_page_config(page_title="Potter Airlines", page_icon="\U0001f9f9", layout="wide")
-
-
-# # Modified: read live SQLite inventory; the backend owns all pricing and SQL.
-# def get_priced_flights():
-#     return booking.get_priced_flights()
 
 
 # ---------------------------------------------------------------------
@@ -24,12 +19,6 @@ st.set_page_config(page_title="Potter Airlines", page_icon="\U0001f9f9", layout=
 st.title("\U0001f9f9 Potter Airlines")
 # Modified: show customer-facing text instead of Audrey's backend module names.
 st.caption("Search flights, compare fares, and choose your seats. Prices are in CAD.")
-# Added: safe startup adds the bookings table without resetting flight inventory.
-# try:
-#     initialize_database()
-# except (sqlite3.Error, OSError, ValueError) as error:
-#     st.error(f"Could not initialize the database: {error}")
-#     st.stop()
 
 if "message" in st.session_state:
     st.success(st.session_state.pop("message"))
@@ -88,21 +77,8 @@ if page == "Booked flights":
                         st.error(str(error))
     st.stop()
 
-# Added: show a useful message if preview data is missing or empty.
-# try:
-#     priced = get_priced_flights()
-# except (FileNotFoundError, KeyError, ValueError, sqlite3.Error, pd.errors.DatabaseError):
-#     st.error("Flight data could not be loaded. Please check the project data files.")
-#     st.stop()
 
-# if priced.empty:
-#     st.info("No flights are available to display.")
-#     st.stop()
 
-# # Modified: display Kevin's city and airport fields without changing the database.
-# priced["source"] = priced["origin_city"] + " (" + priced["origin_airport_code"] + ")"
-# priced["destination"] = priced["destination_city"] + " (" + priced["destination_airport_code"] + ")"
-# priced["dep_date_parsed"] = pd.to_datetime(priced["dep_date"]).dt.date
 try:
     min_date, max_date = get_flight_date_range()
 except sqlite3.Error as error:
@@ -115,11 +91,6 @@ if min_date is None or max_date is None:
 
 min_date = pd.to_datetime(min_date).date()
 max_date = pd.to_datetime(max_date).date()
-
-
-# cities = sorted(set(priced["source"]) | set(priced["destination"]))
-# min_date = priced["dep_date_parsed"].min()
-# max_date = priced["dep_date_parsed"].max()
 
 # ---------------------------------------------------------------------
 # Search
@@ -149,33 +120,6 @@ date_range = st.date_input(
     min_value=min_date,
     max_value=max_date,
 )
-
-# results = priced.copy()
-# if source != "Any":
-#     results = results[results["source"] == source]
-# if destination != "Any":
-#     results = results[results["destination"] == destination]
-
-# # date_range is a single date while the user has only picked the start of
-# # the range; only filter once both a start and end date are chosen.
-# if isinstance(date_range, tuple) and len(date_range) == 2:
-#     start_date, end_date = date_range
-#     results = results[
-#         (results["dep_date_parsed"] >= start_date)
-#         & (results["dep_date_parsed"] <= end_date)
-#     ]
-
-# # Modified: hide sold-out flights and departures with no valid fare.
-# results = results[(results["seats_remaining"] > 0) & results["fare"].notna()]
-
-# if sort_by == "Price (low to high)":
-#     results = results.sort_values("fare")
-# elif sort_by == "Price (high to low)":
-#     results = results.sort_values("fare", ascending=False)
-# elif sort_by == "Departure date (soonest first)":
-#     results = results.sort_values(["dep_date_parsed", "dep_hour"])
-# else:  # "Departure date (latest first)"
-#     results = results.sort_values(["dep_date_parsed", "dep_hour"], ascending=False)
 
 
 if isinstance(date_range, tuple) and len(date_range) == 2:
