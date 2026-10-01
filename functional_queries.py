@@ -96,3 +96,14 @@ def search_flights(
 
     return flights_df
 
+def get_flight_date_range(db_path=DB_PATH):
+    conn = get_connection(db_path)
+    try:
+        row = conn.execute(
+            "SELECT MIN(dep_date), MAX(dep_date) FROM flights"
+        ).fetchone()
+
+        return row[0], row[1]
+    finally:
+        conn.close()
+
