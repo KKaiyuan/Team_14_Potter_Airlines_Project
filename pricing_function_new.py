@@ -1,19 +1,6 @@
 import pandas as pd
 import holidays
-SEASONAL_FACTOR = {
-    1: 1.00,   # January
-    2: 1.00,   # February
-    3: 1.00,   # March
-    4: 1.00,   # April
-    5: 1.00,   # May
-    6: 1.20,   # June
-    7: 1.20,   # July
-    8: 1.20,   # August
-    9: 1.00,   # September
-    10: 1.00,  # October
-    11: 1.00,  # November
-    12: 1.20,  # December
-}
+from config import SEASONAL_FACTOR
 
 # Added: read the eight-column flight dataset without creating a route table.
 flights_df = pd.read_csv("flights.csv")
