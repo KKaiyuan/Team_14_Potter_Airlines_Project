@@ -2,7 +2,7 @@
 
 import sqlite3
 import booking
-from potterairline_tables import initialize_database
+# from potterairline_tables import initialize_database
 
 import pandas as pd
 import streamlit as st
