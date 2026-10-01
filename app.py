@@ -22,11 +22,11 @@ st.title("\U0001f9f9 Potter Airlines")
 # Modified: show customer-facing text instead of Audrey's backend module names.
 st.caption("Search flights, compare fares, and choose your seats. Prices are in CAD.")
 # Added: safe startup adds the bookings table without resetting flight inventory.
-try:
-    initialize_database()
-except (sqlite3.Error, OSError, ValueError) as error:
-    st.error(f"Could not initialize the database: {error}")
-    st.stop()
+# try:
+#     initialize_database()
+# except (sqlite3.Error, OSError, ValueError) as error:
+#     st.error(f"Could not initialize the database: {error}")
+#     st.stop()
 
 if "message" in st.session_state:
     st.success(st.session_state.pop("message"))

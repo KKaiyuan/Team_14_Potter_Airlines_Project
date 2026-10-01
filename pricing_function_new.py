@@ -21,10 +21,10 @@ route_popularity_scores = {
 
 flights_df["route_popularity"] = [
     route_popularity_scores.get(
-        tuple(sorted((origin, destination))), 0.5
+        tuple(sorted((origin_city, destination_city))), 0.5
     )
-    for origin, destination in zip(
-        flights_df["origin"], flights_df["destination"]
+    for origin_city, destination_city in zip(
+        flights_df["origin_city"], flights_df["destination_city"]
     )
 ]
 
@@ -63,10 +63,10 @@ def price_flights(flights_df, now=None):
         return flights_df
     flights_df["route_popularity"] = [
         route_popularity_scores.get(
-            tuple(sorted((source, destination))), 0.5
+            tuple(sorted((origin_city, destination_city))), 0.5
         )
-        for source, destination in zip(
-            flights_df["origin_city"], flights_df["destination_city"]
+        for origin_city, destination_city in zip(
+            flights_df["origin_city"], flights_df["destination_city_city"]
         )
     ]
 
