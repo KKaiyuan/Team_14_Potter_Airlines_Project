@@ -27,7 +27,7 @@ def create_tables(conn):
         CREATE TABLE flights (
             flight_id TEXT NOT NULL,
             dep_date DATE NOT NULL,
-            dep_hour INTEGER,
+            dep_hour TEXT,
             origin_airport_code TEXT NOT NULL,
             destination_airport_code TEXT NOT NULL,
             distance_km INTEGER,
@@ -85,7 +85,7 @@ def load_data_into_tables(conn, flights_df):
         (
             row["flight_id"],
             str(row["dep_date"]),
-            row["dep_hour"],
+            str(row["dep_hour"]),
             row["origin_airport_code"],
             row["destination_airport_code"],
             row["distance_km"],

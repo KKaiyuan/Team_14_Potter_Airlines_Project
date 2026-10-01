@@ -234,7 +234,8 @@ for _, row in results.head(25).iterrows():
                 st.write(f"Final fare per seat: ${row['fare']:.2f}")
 
             n_seats = st.number_input(
-                "Seats", min_value=1, max_value=int(row["seats_remaining"]),
+                "Seats", min_value=1, 
+                # max_value=int(row["seats_remaining"]),
                 value=1, key=f"n_{flight_key}",
             )
             # Modified: call the backend; cancellation belongs on the orders page.

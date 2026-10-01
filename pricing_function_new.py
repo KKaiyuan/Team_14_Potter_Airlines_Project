@@ -19,42 +19,6 @@ route_popularity_scores = {
     ("Montreal", "Ottawa"): 0.5,
 }
 
-# flights_df["route_popularity"] = [
-#     route_popularity_scores.get(
-#         tuple(sorted((origin_city, destination_city))), 0.5
-#     )
-#     for origin_city, destination_city in zip(
-#         flights_df["origin_city"], flights_df["destination_city"]
-#     )
-# ]
-
-# departure_date = pd.to_datetime(
-#     flights_df["dep_date"].astype(str)
-#     + " "
-#     + flights_df["dep_hour"].astype(str)
-# )
-
-# flights_df["day_of_week"] = departure_date.dt.dayofweek
-# now = pd.Timestamp.now()
-
-# flights_df["days_until_departure"] = (
-#     departure_date - now
-# ) / pd.Timedelta(days=1)
-
-# # Added: use the shared seasonal factor for the departure month.
-# flights_df["seasonal_factor"] = (
-#     departure_date.dt.month.map(SEASONAL_FACTOR)
-# )
-
-# # Added: use Canadian public holidays without province-specific additions.
-# # Reference: https://holidays.readthedocs.io/en/latest/auto_gen_docs/canada/
-# canada_holidays = holidays.CA(observed=True)
-# # Added: the 20% departure-day premium is a project assumption.
-# flights_df["holiday"] = [
-#     1.2 if day in canada_holidays else 1.0
-#     for day in departure_date.dt.date
-# ]
-
 
 # Modified: price current database rows without reading or overwriting CSV on import.
 def price_flights(flights_df, now=None):
@@ -245,26 +209,6 @@ def calculate_fare(
 
     return final_fare, discount_factor, discount_eligible
 
-
-
-# flights_df[
-#     ["fare", "discount_factor", "discount_eligible"]
-# ] = flights_df.apply(
-#     lambda row: calculate_fare(
-#         base_fare=row["base_fare"],
-#         days_until_departure=row["days_until_departure"],
-#         seats_remaining=row["seats_remaining"],
-#         capacity=row["capacity"],
-#         route_popularity=row["route_popularity"],
-#         seasonal_factor=row["seasonal_factor"],
-#         holiday=row["holiday"],
-#         day_of_week=row["day_of_week"],
-#     ),
-#     axis=1,
-#     result_type="expand",
-# )
-
-# flights_df.to_csv("priced_flights.csv", index=False)
 
 
 if __name__ == "__main__":
