@@ -48,7 +48,7 @@ Booked flights is a separate sidebar page. Its dataframe is loaded from the book
 
 There is no customer authentication: everyone using this database sees the same shared order list. Authentication is optional in the project specification.
 
-## Schema and SQL operations
+# Schema of the SQL tables:
 
 - routes: primary key (origin_airport_code, destination_airport_code).
 - flights: primary key (flight_id, dep_date), foreign key to routes. Flight numbers can repeat on different dates.
@@ -57,8 +57,6 @@ There is no customer authentication: everyone using this database sees the same 
 CREATE TABLE is in potterairline_tables.py. INSERT, parameterized SELECT, conditional UPDATE and parameterized DELETE are exercised through booking.py. SQL values are supplied with placeholders. BEGIN IMMEDIATE serializes inventory changes; transaction context managers roll back either operation if its partner fails, and finally closes booking/cancellation connections. Read-only helpers use closing().
 
 Flight in flight.py validates capacity, inventory, quantity and departure time and is used by the booking workflow. Pandas vectorized date arithmetic, load-factor calculations and order-total calculations operate across multiple rows. Row-wise fare calculation is retained for clarity and is not described as vectorized.
-
-# Schema of the SQL tables:
 
 ## _routes_ table
 The _routes_ SQL table stores the unique flight routes. It has the following fields: `origin_airport_code`, `destination_airport_code`, `origin_city`, `destination_city`, `base_fare`. The primary key of the _routes_ SQL table is the tuple *(origin_airport_code, destination_airport_code)*, since for a single airline (i.e. Potter Airlines), there should not be duplicated routes with the same origin airport and destination airport. Please note that there might be multiple flights for a particular route (i.e. generally the same flight number), either recurring flights or flights on the same route occurring at different times (i.e. different flight number). We have taken this into consideration, and it is possible for multiple flights to correspond to one route. In order to retrieve the information only stored in the routes table (i.e. *base_fare*), we join the two tables on the foreign key of _flights_ table (i.e. the tuple *(origin_airport_code, destination_airport_code)*) which is the primary key of the _routes_ table.
