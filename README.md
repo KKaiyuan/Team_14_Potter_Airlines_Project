@@ -9,9 +9,10 @@ Open a terminal in this project folder. Use Python 3.10 or later.
 ```sh
 python -m pip install -r requirements.txt
 python main.py
+python -m streamlit run app.py
 ```
 
-Open the local URL printed by Streamlit and keep the terminal running. You can also use VS Code's Run Python File button on main.py (not app.py). The launcher uses the current Python environment and sets the project folder as the working directory. The direct command `python -m streamlit run app.py` still works when run from this folder.
+After running the streamlit command above, open the local URL printed by Streamlit and keep the terminal running. You can also use VS Code's Run Python File button (the Play button on the top-right corner) on main.py (not app.py). The launcher uses the current Python environment and sets the project folder as the working directory. The direct command `python -m streamlit run app.py` still works when running from this folder.
 
 The supplied database retains Kevin's 278 routes and 800 flights, with an empty bookings table added. Startup preserves existing inventory and orders. If no flights table exists, startup creates the schema and loads the supplied CSV once.
 
@@ -20,10 +21,10 @@ Optional commands:
 ```sh
 python potterairline_tables.py
 python pricing_function_new.py
-python -m unittest -v test_project
+python -m unittest -v test_project # TODO: Fix the error "Database error: test failure"
 ```
 
-The pricing command produces a CSV-based pricing export; the UI instead prices current database inventory. Tests use temporary databases and do not modify the project database.
+The pricing command produces a CSV-based pricing export; the prices are calculated from the filtered flights dataframe returned by the SQL queries. Tests use temporary databases and do not modify the project database.
 
 ## Workflow and design
 
