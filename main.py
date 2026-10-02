@@ -12,19 +12,8 @@ def run_pipeline(n_flights=800):
     print("Step 1: Generating flights.csv...")
     flights_df = generate_flights_csv(n=n_flights, output_path=CSV_PATH)
 
-    # 2 & 3. pricing_function_new.py reads flights.csv itself (using
-    #        origin_city/destination_city) and computes fare/route_popularity/
-    #        etc. at import time -- importing it IS steps 2+3 combined.
-    
-    
-    # print("Step 2-3: Loading CSV and calculating fares (via pricing_function_new.py)...")
-    # import pricing_function_new
-    # importlib.reload(pricing_function_new)  # ensures it re-reads the CSV on repeat runs
-
-    # flights_df = pricing_function_new.flights_df  # grab the computed DataFrame
-
-    # 4. Load DataFrame into SQL tables
-    print("Step 4: Loading data into SQL tables...")
+    # 2. Load DataFrame into SQL tables
+    print("Step 2: Loading data into SQL tables...")
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute("PRAGMA foreign_keys = ON;")
@@ -33,7 +22,7 @@ def run_pipeline(n_flights=800):
     finally:
         conn.close()
 
-    print("Pipeline complete. Data is in", DB_PATH)
+    print("Pipeline complete", DB_PATH)
 
 
 if __name__ == "__main__":
