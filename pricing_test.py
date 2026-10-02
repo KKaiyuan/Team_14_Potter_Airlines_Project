@@ -1,3 +1,5 @@
+from pricing_function_new import calculate_fare
+
 def test_price(**changes):
     inputs = {
         "base_fare": 200,
@@ -30,11 +32,11 @@ for invalid_input in [
 
 for seats in [0, 100]:
     fare, _, _ = test_price(seats_remaining=seats)
-    assert 169 <- fare <= 1500
+    assert 160 <= fare <= 1500
 
 print("PASS TEST: valid seat boundaries accepted")
 
-fare, _, _ = test_price(season_factor=0.5)
+fare, _, _ = test_price(seasonal_factor=0.5)
 assert fare == 160
 print("PASS TEST: minimum fare enforced")
 
