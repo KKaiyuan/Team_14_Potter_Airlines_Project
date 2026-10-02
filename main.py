@@ -10,16 +10,18 @@ DB_PATH = "flights_database.db"
 def run_pipeline(n_flights=800):
     # 1. Generate the raw flights CSV
     print("Step 1: Generating flights.csv...")
-    generate_flights_csv(n=n_flights, output_path=CSV_PATH)
+    flights_df = generate_flights_csv(n=n_flights, output_path=CSV_PATH)
 
     # 2 & 3. pricing_function_new.py reads flights.csv itself (using
     #        origin_city/destination_city) and computes fare/route_popularity/
     #        etc. at import time -- importing it IS steps 2+3 combined.
-    print("Step 2-3: Loading CSV and calculating fares (via pricing_function_new.py)...")
-    import pricing_function_new
-    importlib.reload(pricing_function_new)  # ensures it re-reads the CSV on repeat runs
+    
+    
+    # print("Step 2-3: Loading CSV and calculating fares (via pricing_function_new.py)...")
+    # import pricing_function_new
+    # importlib.reload(pricing_function_new)  # ensures it re-reads the CSV on repeat runs
 
-    flights_df = pricing_function_new.flights_df  # grab the computed DataFrame
+    # flights_df = pricing_function_new.flights_df  # grab the computed DataFrame
 
     # 4. Load DataFrame into SQL tables
     print("Step 4: Loading data into SQL tables...")

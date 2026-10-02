@@ -2,7 +2,10 @@
 
 import sqlite3
 import booking
-# from potterairline_tables import initialize_database
+
+from config import city_codes
+from functional_queries import search_flights, get_flight_date_range
+
 
 import pandas as pd
 import streamlit as st
@@ -19,11 +22,6 @@ st.set_page_config(
     page_icon="assets/potterairline_favicon_italic_v3_32.png", # NOTE by Kevin: This sets the custom icon for the browser tab of this app
     layout="wide",
 )
-
-
-# Modified: read live SQLite inventory; the backend owns all pricing and SQL.
-def get_priced_flights():
-    return booking.get_priced_flights()
 
 
 # ---------------------------------------------------------------------
@@ -56,12 +54,6 @@ st.markdown(
 
 # Modified: show customer-facing text instead of Audrey's backend module names.
 st.caption("Search flights, compare fares, and choose your seats. Prices are in CAD.")
-# Added: safe startup adds the bookings table without resetting flight inventory.
-# try:
-#     initialize_database()
-# except (sqlite3.Error, OSError, ValueError) as error:
-#     st.error(f"Could not initialize the database: {error}")
-#     st.stop()
 
 if "message" in st.session_state:
     st.success(st.session_state.pop("message"))
@@ -120,24 +112,20 @@ if page == "Booked flights":
                         st.error(str(error))
     st.stop()
 
-# Added: show a useful message if preview data is missing or empty.
+
+
 try:
-    priced = get_priced_flights()
-except (FileNotFoundError, KeyError, ValueError, sqlite3.Error, pd.errors.DatabaseError):
-    st.error("Flight data could not be loaded. Please check the project data files.")
+    min_date, max_date = get_flight_date_range()
+except sqlite3.Error as error:
+    st.error(f"Could not load flight dates: {error}")
     st.stop()
 
-if priced.empty:
+if min_date is None or max_date is None:
     st.info("No flights are available to display.")
     st.stop()
 
-# Modified: display Kevin's city and airport fields without changing the database.
-priced["source"] = priced["origin_city"] + " (" + priced["origin_airport_code"] + ")"
-priced["destination"] = priced["destination_city"] + " (" + priced["destination_airport_code"] + ")"
-priced["dep_date_parsed"] = pd.to_datetime(priced["dep_date"]).dt.date
-cities = sorted(set(priced["source"]) | set(priced["destination"]))
-min_date = priced["dep_date_parsed"].min()
-max_date = priced["dep_date_parsed"].max()
+min_date = pd.to_datetime(min_date).date()
+max_date = pd.to_datetime(max_date).date()
 
 # ---------------------------------------------------------------------
 # Search
@@ -145,9 +133,9 @@ max_date = priced["dep_date_parsed"].max()
 st.subheader("Search flights")
 col1, col2, col3 = st.columns(3)
 with col1:
-    source = st.selectbox("From", ["Any"] + cities)
+    source = st.selectbox("From", ["Any"] + city_codes)
 with col2:
-    dest_options = ["Any"] + [c for c in cities if c != source]
+    dest_options = ["Any"] + [c for c in city_codes if c != source]
     destination = st.selectbox("To", dest_options)
 with col3:
     sort_by = st.selectbox(
@@ -157,6 +145,9 @@ with col3:
             "Departure date (soonest first)", "Departure date (latest first)",
         ],
     )
+    
+origin_code = None if source == "Any" else source.split(" - ")[-1]
+destination_code = None if destination == "Any" else destination.split(" - ")[-1]
 
 date_range = st.date_input(
     "Departure date range",
@@ -165,32 +156,23 @@ date_range = st.date_input(
     max_value=max_date,
 )
 
-results = priced.copy()
-if source != "Any":
-    results = results[results["source"] == source]
-if destination != "Any":
-    results = results[results["destination"] == destination]
 
-# date_range is a single date while the user has only picked the start of
-# the range; only filter once both a start and end date are chosen.
 if isinstance(date_range, tuple) and len(date_range) == 2:
     start_date, end_date = date_range
-    results = results[
-        (results["dep_date_parsed"] >= start_date)
-        & (results["dep_date_parsed"] <= end_date)
-    ]
 
-# Modified: hide sold-out flights and departures with no valid fare.
-results = results[(results["seats_remaining"] > 0) & results["fare"].notna()]
-
-if sort_by == "Price (low to high)":
-    results = results.sort_values("fare")
-elif sort_by == "Price (high to low)":
-    results = results.sort_values("fare", ascending=False)
-elif sort_by == "Departure date (soonest first)":
-    results = results.sort_values(["dep_date_parsed", "dep_hour"])
-else:  # "Departure date (latest first)"
-    results = results.sort_values(["dep_date_parsed", "dep_hour"], ascending=False)
+    try:
+        results = search_flights(
+            start_date=start_date,
+            end_date=end_date,
+            origin_airport_code=origin_code,
+            destination_airport_code=destination_code,
+            sort_by=sort_by,
+        )
+    except (ValueError, sqlite3.Error, pd.errors.DatabaseError) as error:
+        st.error(f"Could not search flights: {error}")
+        st.stop()
+else:
+    results = pd.DataFrame()
 
 st.write(f"**{len(results)}** flights found.")
 # Added: make Audrey's existing 25-result display limit clear.
@@ -207,7 +189,9 @@ for _, row in results.head(25).iterrows():
         c1, c2, c3, c4 = st.columns([3, 2, 2, 2])
 
         with c1:
-            st.markdown(f"**{row['source']} → {row['destination']}**")
+            st.markdown(
+        f"**{row['origin_city']} ({row['origin_airport_code']}) → "
+        f"{row['destination_city']} ({row['destination_airport_code']})**")
             st.caption(f"Flight {row['flight_id']} · {row['dep_date']} at {row['dep_hour']}")
 
         with c2:
@@ -229,7 +213,8 @@ for _, row in results.head(25).iterrows():
                 st.write(f"Final fare per seat: ${row['fare']:.2f}")
 
             n_seats = st.number_input(
-                "Seats", min_value=1, max_value=int(row["seats_remaining"]),
+                "Seats", min_value=1, 
+                # max_value=int(row["seats_remaining"]),
                 value=1, key=f"n_{flight_key}",
             )
             # Modified: call the backend; cancellation belongs on the orders page.
