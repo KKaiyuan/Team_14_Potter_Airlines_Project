@@ -28,6 +28,18 @@ The pricing command produces a CSV-based pricing export; the prices are calculat
 
 ## Workflow and design
 
+1. Generate Pandas dataframe from gendb.py, and save it to csv file "flights.csv"
+
+2. Load Pandas dataframe to SQL tables
+
+3. SQL queries:
+    - filtering - returns a Pandas dataframe:
+        - Using the Pandas dataframe to calculate the prices with discounting
+    - Updates the Pandas dataframe by adding the prices columnn (i.e. calculate prices on the fly)
+    - booking
+    - update price
+    - etc.
+
 Search flights filters by city/airport and date and sorts by price or departure. The display retains Audrey's first-25-results limit; narrow the filters to find other flights. Prices are per seat in CAD.
 
 Book passes a flight number, departure date and ticket quantity to booking.py. The backend validates the request, calculates the current fare, deducts seats and inserts the order in one transaction. The confirmed per-seat fare is saved so a later price change does not alter an existing order's displayed cost.
