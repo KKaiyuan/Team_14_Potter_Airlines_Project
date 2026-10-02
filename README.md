@@ -88,7 +88,7 @@ CREATE TABLE flights (
         );
 
 ## _bookings_ table
-TODO: finish the description for _bookings_ table
+The _bookings_ SQL table stores all of the active bookings. It has the following fields: `booking_id`, `flight_id`, `dep_date`, `tickets`, `unit_fare`, `booked_at`. The _bookings_ table has the foreign key *(flight_id, dep_date)* tuple that refers to the primary key *(flight_id, dep_date)* tuple of the *flights* table.
 
 CREATE TABLE IF NOT EXISTS bookings (
             booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,7 +99,6 @@ CREATE TABLE IF NOT EXISTS bookings (
             booked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (flight_id, dep_date) REFERENCES flights(flight_id, dep_date)
         );
-
 
 Side Notes:
 We originally decided to include UUIDs for these tables, but we found out that these are not necessary. Reasons are described below:
