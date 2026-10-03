@@ -21,7 +21,7 @@ Optional commands:
 ```sh
 python potterairline_tables.py
 python pricing_function_new.py
-python -m unittest -v test_project # TODO: Fix the error "Database error: test failure"
+python -m unittest -v test_project
 ```
 
 The pricing command produces a CSV-based pricing export; the prices are calculated from the filtered flights dataframe returned by the SQL queries. Tests use temporary databases and do not modify the project database.
@@ -143,3 +143,10 @@ AI assistance was used for UI integration, debugging and tests. The group must u
 This revision restores Kevin's book_flight validation order, cursor.execute style, printed messages and None-on-failure convention. cancel_booking retains his try/with/except/finally layout and False-on-failure convention. The UI checks return values before reporting success. Database errors roll back first, then print a message and return failure, rather than being exposed as exceptions to the UI.
 
 Necessary changes remain: use flight_id plus dep_date, store confirmed fare, DELETE the active order, preserve inventory during startup, adapt pricing to new field names and live data, and add the rubric-required Flight class. Wrapping the existing booking body in a transaction adds indentation; it does not replace the original sequence of checks. The read-only dataframe helpers are appended after the original functions. Existing pricing rules, generators, capacities, route data and seasonal constants are unchanged.
+
+
+## Testing:
+
+pytest booking_test.py
+python test_project.py
+python pricing_test.py
