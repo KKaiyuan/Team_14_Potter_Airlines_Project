@@ -1,14 +1,64 @@
+# import sqlite3
+# import pytest
+# import booking
+
+# TEST_DEP_DATE = "2026-12-25"  # fixed date used across all tests
+
+
+# @pytest.fixture
+# def test_db(tmp_path, monkeypatch):
+#     """
+#     Create a temporary database for testing.
+#     This prevents the tests from changing the real database.
+#     """
+#     monkeypatch.chdir(tmp_path)
+
+#     conn = sqlite3.connect("flights_database.db")
+#     cursor = conn.cursor()
+
+#     cursor.execute("""
+#         CREATE TABLE flights (
+#             flight_id INTEGER,
+#             dep_date TEXT,
+#             seats_remaining INTEGER,
+#             PRIMARY KEY (flight_id, dep_date)
+#         )
+#     """)
+
+#     cursor.execute("""
+#         CREATE TABLE bookings (
+#             booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
+#             flight_id INTEGER,
+#             dep_date TEXT,
+#             tickets INTEGER,
+#             status TEXT
+#         )
+#     """)
+
+#     # Test flight with 50 seats
+#     cursor.execute("""
+#         INSERT INTO flights (flight_id, dep_date, seats_remaining)
+#         VALUES (1, ?, 50)
+#     """, (TEST_DEP_DATE,))
+
+#     conn.commit()
+#     conn.close()
+
+#     return tmp_path
+
+
 import sqlite3
 import pytest
 import booking
 
-TEST_DEP_DATE = "2026-12-25"  # fixed date used across all tests
+TEST_DEP_DATE = "2026-12-25"
 
 
 @pytest.fixture
 def test_db(tmp_path, monkeypatch):
     """
-    Create a temporary database for testing.
+    Create a temporary database for testing, matching the real schema
+    (routes + flights, joined on airport codes).
     This prevents the tests from changing the real database.
     """
     monkeypatch.chdir(tmp_path)
@@ -17,28 +67,55 @@ def test_db(tmp_path, monkeypatch):
     cursor = conn.cursor()
 
     cursor.execute("""
+        CREATE TABLE routes (
+            origin_airport_code TEXT NOT NULL,
+            destination_airport_code TEXT NOT NULL,
+            origin_city TEXT NOT NULL,
+            destination_city TEXT NOT NULL,
+            base_fare DOUBLE,
+            PRIMARY KEY (origin_airport_code, destination_airport_code)
+        )
+    """)
+
+    cursor.execute("""
         CREATE TABLE flights (
-            flight_id INTEGER,
-            dep_date TEXT,
+            flight_id TEXT NOT NULL,
+            dep_date DATE NOT NULL,
+            origin_airport_code TEXT NOT NULL,
+            destination_airport_code TEXT NOT NULL,
+            capacity INTEGER,
             seats_remaining INTEGER,
-            PRIMARY KEY (flight_id, dep_date)
+            dep_hour INTEGER,
+            distance_km INTEGER,
+            PRIMARY KEY (flight_id, dep_date),
+            FOREIGN KEY (origin_airport_code, destination_airport_code)
+                REFERENCES routes(origin_airport_code, destination_airport_code)
         )
     """)
 
     cursor.execute("""
         CREATE TABLE bookings (
             booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            flight_id INTEGER,
-            dep_date TEXT,
+            flight_id TEXT,
+            dep_date DATE,
             tickets INTEGER,
             status TEXT
         )
     """)
 
-    # Test flight with 50 seats
+    # One route: YYZ -> YVR
     cursor.execute("""
-        INSERT INTO flights (flight_id, dep_date, seats_remaining)
-        VALUES (1, ?, 50)
+        INSERT INTO routes
+            (origin_airport_code, destination_airport_code, origin_city, destination_city, base_fare)
+        VALUES ('YYZ', 'YVR', 'Toronto', 'Vancouver', 300.0)
+    """)
+
+    # Test flight with 50 seats, on that route
+    cursor.execute("""
+        INSERT INTO flights
+            (flight_id, dep_date, origin_airport_code, destination_airport_code,
+             capacity, seats_remaining, dep_hour, distance_km)
+        VALUES (1, ?, 'YYZ', 'YVR', 50, 50, 8, 3350)
     """, (TEST_DEP_DATE,))
 
     conn.commit()
