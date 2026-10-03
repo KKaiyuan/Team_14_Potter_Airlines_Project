@@ -1,30 +1,29 @@
 # Potter Airlines: pricing, booking and cancellation
 
-This fictional airline project prices Kevin's 800 generated flight occurrences and lets users search, book and cancel through a simple Streamlit UI. Data is persisted in SQLite. No real tickets or payments are processed.
+**RSM 8431 Analytics Colloquia | Team 14**
+
+Potter Airlines is a fictional airline application that calculates dynamic fares and supports flight searches, bookings, and cancellations. The project uses Python functions and a `Flight` class, Pandas for data processing, SQLite for persistent storage, and Streamlit for the interface. Prices are in Canadian dollars.
 
 ## Setup and run
 
-Open a terminal in this project folder. Use Python 3.10 or later.
+Git clone main branch of this project. Open a terminal and "cd" (change directory) into this project folder. Use Python 3.10 or later. Run the following bash code to install the required libraries for this project:
 
-```sh
-python -m pip install -r requirements.txt
+```bash
+pip install -r requirements.txt
+```
+
+After installing the required libraries, run the following for the backend and the frontend for the web application.
+```bash
 python main.py
 python -m streamlit run app.py
 ```
 
-After running the streamlit command above, open the local URL printed by Streamlit and keep the terminal running. You can also use VS Code's Run Python File button (the Play button on the top-right corner) on main.py (not app.py). The launcher uses the current Python environment and sets the project folder as the working directory. The direct command `python -m streamlit run app.py` still works when running from this folder.
+Open the local URL displayed in the terminal. Keep the terminal running while using the application; press `Ctrl+C` to stop it. 
 
-The supplied database retains Kevin's 278 routes and 800 flights, with an empty bookings table added. Startup preserves existing inventory and orders. If no flights table exists, startup creates the schema and loads the supplied CSV once.
+The application reads the supplied `flights_database.db`. Streamlit GUI launches and page refreshes preserve bookings and seat inventory. **`main.py` generates data and rebuilds database tables; it is not the UI launcher.**
 
-Optional commands:
+The generator creates 800 flights (278 routes) occurrences by default and writes `flights.csv`; the pipeline loads them into SQLite.
 
-```sh
-python potterairline_tables.py
-python pricing_function_new.py
-python -m unittest -v test_project
-```
-
-The pricing command produces a CSV-based pricing export; the prices are calculated from the filtered flights dataframe returned by the SQL queries. Tests use temporary databases and do not modify the project database.
 
 ## Workflow and design
 
