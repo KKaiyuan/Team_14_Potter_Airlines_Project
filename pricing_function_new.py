@@ -1,23 +1,12 @@
 import pandas as pd
 import holidays
-from config import SEASONAL_FACTOR
+from config import SEASONAL_FACTOR, ROUTE_POPULARITY_SCORES
 
 # # Added: read the eight-column flight dataset without creating a route table.
 # flights_df = pd.read_csv("flights.csv")
 
 # These popularity scores are project assumptions, not observed traffic estimates.
-route_popularity_scores = {
-    ("Ottawa", "Toronto"): 0.6,
-    ("Toronto", "Vancouver"): 0.8,
-    ("Calgary", "Toronto"): 0.5,
-    ("Montreal", "Toronto"): 0.7,
-    ("Calgary", "Vancouver"): 0.5,
-    ("Montreal", "Vancouver"): 0.5,
-    ("Ottawa", "Vancouver"): 0.5,
-    ("Calgary", "Montreal"): 0.5,
-    ("Calgary", "Ottawa"): 0.5,
-    ("Montreal", "Ottawa"): 0.5,
-}
+route_popularity_scores = ROUTE_POPULARITY_SCORES
 
 
 # Modified: price current database rows without reading or overwriting CSV on import.
