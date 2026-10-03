@@ -2,6 +2,8 @@ import sqlite3
 import pytest
 import booking
 
+TEST_DEP_DATE = "2026-12-25"  # fixed date used across all tests
+
 
 @pytest.fixture
 def test_db(tmp_path, monkeypatch):
@@ -16,8 +18,10 @@ def test_db(tmp_path, monkeypatch):
 
     cursor.execute("""
         CREATE TABLE flights (
-            flight_id INTEGER PRIMARY KEY,
-            seats_remaining INTEGER
+            flight_id INTEGER,
+            dep_date TEXT,
+            seats_remaining INTEGER,
+            PRIMARY KEY (flight_id, dep_date)
         )
     """)
 
@@ -25,6 +29,7 @@ def test_db(tmp_path, monkeypatch):
         CREATE TABLE bookings (
             booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
             flight_id INTEGER,
+            dep_date TEXT,
             tickets INTEGER,
             status TEXT
         )
@@ -32,9 +37,9 @@ def test_db(tmp_path, monkeypatch):
 
     # Test flight with 50 seats
     cursor.execute("""
-        INSERT INTO flights (flight_id, seats_remaining)
-        VALUES (1, 50)
-    """)
+        INSERT INTO flights (flight_id, dep_date, seats_remaining)
+        VALUES (1, ?, 50)
+    """, (TEST_DEP_DATE,))
 
     conn.commit()
     conn.close()
@@ -43,7 +48,7 @@ def test_db(tmp_path, monkeypatch):
 
 
 def test_successful_booking(test_db):
-    booking_id = booking.book_flight(1, 5)
+    booking_id = booking.book_flight(1, 5, TEST_DEP_DATE)
 
     assert booking_id is not None
 
@@ -51,8 +56,8 @@ def test_successful_booking(test_db):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT seats_remaining FROM flights WHERE flight_id = ?",
-        (1,)
+        "SELECT seats_remaining FROM flights WHERE flight_id = ? AND dep_date = ?",
+        (1, TEST_DEP_DATE)
     )
     seats = cursor.fetchone()[0]
 
@@ -70,7 +75,7 @@ def test_successful_booking(test_db):
 
 
 def test_zero_tickets(test_db):
-    result = booking.book_flight(1, 0)
+    result = booking.book_flight(1, 0, TEST_DEP_DATE)
 
     assert result is None
 
@@ -78,7 +83,8 @@ def test_zero_tickets(test_db):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT seats_remaining FROM flights WHERE flight_id = 1"
+        "SELECT seats_remaining FROM flights WHERE flight_id = 1 AND dep_date = ?",
+        (TEST_DEP_DATE,)
     )
 
     assert cursor.fetchone()[0] == 50
@@ -87,7 +93,7 @@ def test_zero_tickets(test_db):
 
 
 def test_negative_tickets(test_db):
-    result = booking.book_flight(1, -1)
+    result = booking.book_flight(1, -1, TEST_DEP_DATE)
 
     assert result is None
 
@@ -95,7 +101,8 @@ def test_negative_tickets(test_db):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT seats_remaining FROM flights WHERE flight_id = 1"
+        "SELECT seats_remaining FROM flights WHERE flight_id = 1 AND dep_date = ?",
+        (TEST_DEP_DATE,)
     )
 
     assert cursor.fetchone()[0] == 50
@@ -104,7 +111,7 @@ def test_negative_tickets(test_db):
 
 
 def test_too_many_tickets(test_db):
-    result = booking.book_flight(1, 51)
+    result = booking.book_flight(1, 51, TEST_DEP_DATE)
 
     assert result is None
 
@@ -112,7 +119,8 @@ def test_too_many_tickets(test_db):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT seats_remaining FROM flights WHERE flight_id = 1"
+        "SELECT seats_remaining FROM flights WHERE flight_id = 1 AND dep_date = ?",
+        (TEST_DEP_DATE,)
     )
 
     assert cursor.fetchone()[0] == 50
@@ -121,7 +129,7 @@ def test_too_many_tickets(test_db):
 
 
 def test_booking_exactly_remaining_seats(test_db):
-    result = booking.book_flight(1, 50)
+    result = booking.book_flight(1, 50, TEST_DEP_DATE)
 
     assert result is not None
 
@@ -129,7 +137,8 @@ def test_booking_exactly_remaining_seats(test_db):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT seats_remaining FROM flights WHERE flight_id = 1"
+        "SELECT seats_remaining FROM flights WHERE flight_id = 1 AND dep_date = ?",
+        (TEST_DEP_DATE,)
     )
 
     assert cursor.fetchone()[0] == 0
@@ -138,13 +147,13 @@ def test_booking_exactly_remaining_seats(test_db):
 
 
 def test_nonexistent_flight(test_db):
-    result = booking.book_flight(999, 1)
+    result = booking.book_flight(999, 1, TEST_DEP_DATE)
 
     assert result is None
 
 
 def test_cancel_booking(test_db):
-    booking_id = booking.book_flight(1, 5)
+    booking_id = booking.book_flight(1, 5, TEST_DEP_DATE)
 
     result = booking.cancel_booking(booking_id)
 
@@ -154,7 +163,8 @@ def test_cancel_booking(test_db):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT seats_remaining FROM flights WHERE flight_id = 1"
+        "SELECT seats_remaining FROM flights WHERE flight_id = 1 AND dep_date = ?",
+        (TEST_DEP_DATE,)
     )
 
     assert cursor.fetchone()[0] == 50
@@ -170,7 +180,7 @@ def test_cancel_booking(test_db):
 
 
 def test_cancel_booking_twice(test_db):
-    booking_id = booking.book_flight(1, 5)
+    booking_id = booking.book_flight(1, 5, TEST_DEP_DATE)
 
     first_cancel = booking.cancel_booking(booking_id)
     second_cancel = booking.cancel_booking(booking_id)
