@@ -10,9 +10,10 @@ def load_csv(csv_path):
     return pd.read_csv(csv_path)   # <-- load CSV into a DataFrame first
 
 def create_tables(conn):
-    conn.execute("DROP TABLE IF EXISTS flights")  # drop child first (FK dependency)
-    conn.execute("DROP TABLE IF EXISTS routes")
+    # Drop in reverse dependency order: bookings -> flights -> routes
     conn.execute("DROP TABLE IF EXISTS bookings")
+    conn.execute("DROP TABLE IF EXISTS flights")
+    conn.execute("DROP TABLE IF EXISTS routes")
 
     conn.execute("""
         CREATE TABLE routes (
