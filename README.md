@@ -9,9 +9,10 @@ Open a terminal in this project folder. Use Python 3.10 or later.
 ```sh
 python -m pip install -r requirements.txt
 python main.py
+python -m streamlit run app.py
 ```
 
-Open the local URL printed by Streamlit and keep the terminal running. You can also use VS Code's Run Python File button on main.py (not app.py). The launcher uses the current Python environment and sets the project folder as the working directory. The direct command `python -m streamlit run app.py` still works when run from this folder.
+After running the streamlit command above, open the local URL printed by Streamlit and keep the terminal running. You can also use VS Code's Run Python File button (the Play button on the top-right corner) on main.py (not app.py). The launcher uses the current Python environment and sets the project folder as the working directory. The direct command `python -m streamlit run app.py` still works when running from this folder.
 
 The supplied database retains Kevin's 278 routes and 800 flights, with an empty bookings table added. Startup preserves existing inventory and orders. If no flights table exists, startup creates the schema and loads the supplied CSV once.
 
@@ -20,12 +21,24 @@ Optional commands:
 ```sh
 python potterairline_tables.py
 python pricing_function_new.py
-python -m unittest -v test_project
+python -m unittest -v test_project # TODO: Fix the error "Database error: test failure"
 ```
 
-The pricing command produces a CSV-based pricing export; the UI instead prices current database inventory. Tests use temporary databases and do not modify the project database.
+The pricing command produces a CSV-based pricing export; the prices are calculated from the filtered flights dataframe returned by the SQL queries. Tests use temporary databases and do not modify the project database.
 
 ## Workflow and design
+
+1. Generate Pandas dataframe from gendb.py, and save it to csv file "flights.csv"
+
+2. Load Pandas dataframe to SQL tables
+
+3. SQL queries:
+    - filtering - returns a Pandas dataframe:
+        - Using the Pandas dataframe to calculate the prices with discounting
+    - Updates the Pandas dataframe by adding the prices columnn (i.e. calculate prices on the fly)
+    - booking
+    - update price
+    - etc.
 
 Search flights filters by city/airport and date and sorts by price or departure. The display retains Audrey's first-25-results limit; narrow the filters to find other flights. Prices are per seat in CAD.
 
@@ -35,7 +48,7 @@ Booked flights is a separate sidebar page. Its dataframe is loaded from the book
 
 There is no customer authentication: everyone using this database sees the same shared order list. Authentication is optional in the project specification.
 
-## Schema and SQL operations
+# Schema of the SQL tables:
 
 - routes: primary key (origin_airport_code, destination_airport_code).
 - flights: primary key (flight_id, dep_date), foreign key to routes. Flight numbers can repeat on different dates.
@@ -44,6 +57,55 @@ There is no customer authentication: everyone using this database sees the same 
 CREATE TABLE is in potterairline_tables.py. INSERT, parameterized SELECT, conditional UPDATE and parameterized DELETE are exercised through booking.py. SQL values are supplied with placeholders. BEGIN IMMEDIATE serializes inventory changes; transaction context managers roll back either operation if its partner fails, and finally closes booking/cancellation connections. Read-only helpers use closing().
 
 Flight in flight.py validates capacity, inventory, quantity and departure time and is used by the booking workflow. Pandas vectorized date arithmetic, load-factor calculations and order-total calculations operate across multiple rows. Row-wise fare calculation is retained for clarity and is not described as vectorized.
+
+## _routes_ table
+The _routes_ SQL table stores the unique flight routes. It has the following fields: `origin_airport_code`, `destination_airport_code`, `origin_city`, `destination_city`, `base_fare`. The primary key of the _routes_ SQL table is the tuple *(origin_airport_code, destination_airport_code)*, since for a single airline (i.e. Potter Airlines), there should not be duplicated routes with the same origin airport and destination airport. Please note that there might be multiple flights for a particular route (i.e. generally the same flight number), either recurring flights or flights on the same route occurring at different times (i.e. different flight number). We have taken this into consideration, and it is possible for multiple flights to correspond to one route. In order to retrieve the information only stored in the routes table (i.e. *base_fare*), we join the two tables on the foreign key of _flights_ table (i.e. the tuple *(origin_airport_code, destination_airport_code)*) which is the primary key of the _routes_ table.
+
+CREATE TABLE routes (
+            origin_airport_code TEXT NOT NULL,
+            destination_airport_code TEXT NOT NULL,
+            origin_city TEXT NOT NULL,
+            destination_city TEXT NOT NULL,
+            base_fare DOUBLE,
+            PRIMARY KEY (origin_airport_code, destination_airport_code)
+        );
+
+## _flights_ table
+The _flights_ SQL table stores all of the flights. It has the following fields: `flight_id`, `dep_date`, `dep_hour`, `origin_airport_code`, `destination_airport_code`, `distance_km`, `capacity`, `seats_remaining`. The primary key of the _flights_ SQL table is the tuple *(flight_id, dep_date)*, since there should be no flight with the same flight number (i.e. *flight_id*) that happens more than once on any single day (recurring flights for any particular air route of an airline happen at most once per day). The tuple *(origin_airport_code, destination_airport_code)* may not be unique in _flights_ table, but is unqiue in _routes_ table. As a result, we use the *(origin_airport_code, destination_airport_code)* as the foreign key of _flights_ table that references the tuple of the same name in _routes_ table.
+
+CREATE TABLE flights (
+            flight_id TEXT NOT NULL,
+            dep_date DATE NOT NULL,
+            dep_hour INTEGER,
+            origin_airport_code TEXT NOT NULL,
+            destination_airport_code TEXT NOT NULL,
+            distance_km INTEGER,
+            capacity INTEGER,
+            seats_remaining INTEGER,
+            PRIMARY KEY (flight_id, dep_date),
+            FOREIGN KEY (origin_airport_code, destination_airport_code)
+                REFERENCES routes(origin_airport_code, destination_airport_code)
+        );
+
+## _bookings_ table
+The _bookings_ SQL table stores all of the active bookings. It has the following fields: `booking_id`, `flight_id`, `dep_date`, `tickets`, `unit_fare`, `booked_at`. The _bookings_ table has the foreign key *(flight_id, dep_date)* tuple that refers to the primary key *(flight_id, dep_date)* tuple of the *flights* table.
+
+CREATE TABLE IF NOT EXISTS bookings (
+            booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            flight_id TEXT NOT NULL,
+            dep_date DATE NOT NULL,
+            tickets INTEGER NOT NULL CHECK (tickets > 0),
+            unit_fare REAL NOT NULL CHECK (unit_fare > 0),
+            booked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (flight_id, dep_date) REFERENCES flights(flight_id, dep_date)
+        );
+
+Side Notes:
+We originally decided to include UUIDs for these tables, but we found out that these are not necessary. Reasons are described below:
+- The tuple *(origin_airport_code, destination_airport_code)* is inherently unqiue for _routes_ table
+- The tuple *(flight_id, dep_date)* is inherently unqiue for _flights_ table
+- UUIDs are hard to reference from other tables, i.e. they are very different and randomly generated for each data entry for each table. Keeping unique tuples as described above makes it much easier to reference between tables and perform JOIN operations.
+
 
 ## Pricing logic
 
