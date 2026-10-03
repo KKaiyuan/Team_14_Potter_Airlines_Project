@@ -34,7 +34,7 @@ SEASONAL_FACTOR = {
 }
 
 
-city_codes = [
+CITY_CODES = [
     # Ontario: 
     "Toronto - YYZ", "Toronto - YTZ", # Toronto
     "Ottawa - YOW", # Ottawa

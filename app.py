@@ -3,7 +3,7 @@
 import sqlite3
 import booking
 
-from config import city_codes
+from config import CITY_CODES
 from functional_queries import search_flights, get_flight_date_range
 
 
@@ -131,6 +131,7 @@ max_date = pd.to_datetime(max_date).date()
 # Search
 # ---------------------------------------------------------------------
 st.subheader("Search flights")
+city_codes = CITY_CODES
 col1, col2, col3 = st.columns(3)
 with col1:
     source = st.selectbox("From", ["Any"] + city_codes)
