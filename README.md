@@ -39,23 +39,31 @@ The generator creates 800 flights (278 routes) occurrences by default and writes
     - update price
     - etc.
 
-Search flights filters by city/airport and date and sorts by price or departure. The display retains Audrey's first-25-results limit; narrow the filters to find other flights. Prices are per seat in CAD.
 
-Book passes a flight number, departure date and ticket quantity to booking.py. The backend validates the request, calculates the current fare, deducts seats and inserts the order in one transaction. The confirmed per-seat fare is saved so a later price change does not alter an existing order's displayed cost.
+## Using the application
 
-Booked flights is a separate sidebar page. Its dataframe is loaded from the bookings table, including orders for flights that are now sold out. Cancel booking restores every ticket in that order and executes a parameterized DELETE in one transaction. This removes the order from the active list. Repeating a cancellation cannot restore seats twice. A booking ID is never reused (AUTOINCREMENT).
+1. Select **Search flights**, choose origin and destination airports, and set a departure date range.
+2. Sort by fare or departure date. The interface displays the first 25 matches; narrow the filters to find other flights. Sold-out and departed flights are excluded.
+3. Open **See price breakdown** to review fare inputs and the applied discount.
+4. Enter the number of seats and click **Book**. The backend checks availability and confirms the current fare.
+5. Select **Booked flights** to see orders, ticket quantities, confirmed unit fares, and totals.
+6. Click **Cancel booking** to remove an entire order, restore its seats and restore its price.
 
-There is no customer authentication: everyone using this database sees the same shared order list. Authentication is optional in the project specification.
+
+## Data and design
+
+Flight data is synthetic. Airports, departure dates and times, capacities, and remaining seats are randomly selected. `random.seed(42)` supports repeatable random choices, while generated dates depend on the run date. Aircraft capacities are defined in `config.py`; approximate straight-line city distances are read from `distances.csv`.
+
+SQLite separates route information, flight inventory, and orders:
+
+| Table | Contents | Primary key |
+| --- | --- | --- |
+| `routes` | Origin/destination airports and cities, base fare | `(origin_airport_code, destination_airport_code)` |
+| `flights` | Departure date/time, route reference, distance, capacity, remaining seats | `(flight_id, dep_date)` |
+| `bookings` | Flight reference, ticket quantity, confirmed unit fare, booking timestamp | `booking_id` |
+
 
 # Schema of the SQL tables:
-
-- routes: primary key (origin_airport_code, destination_airport_code).
-- flights: primary key (flight_id, dep_date), foreign key to routes. Flight numbers can repeat on different dates.
-- bookings: booking_id, flight_id, dep_date, tickets, unit_fare, booked_at; composite foreign key to flights. It stores active orders, not cancellation history.
-
-CREATE TABLE is in potterairline_tables.py. INSERT, parameterized SELECT, conditional UPDATE and parameterized DELETE are exercised through booking.py. SQL values are supplied with placeholders. BEGIN IMMEDIATE serializes inventory changes; transaction context managers roll back either operation if its partner fails, and finally closes booking/cancellation connections. Read-only helpers use closing().
-
-Flight in flight.py validates capacity, inventory, quantity and departure time and is used by the booking workflow. Pandas vectorized date arithmetic, load-factor calculations and order-total calculations operate across multiple rows. Row-wise fare calculation is retained for clarity and is not described as vectorized.
 
 ## _routes_ table
 The _routes_ SQL table stores the unique flight routes. It has the following fields: `origin_airport_code`, `destination_airport_code`, `origin_city`, `destination_city`, `base_fare`. The primary key of the _routes_ SQL table is the tuple *(origin_airport_code, destination_airport_code)*, since for a single airline (i.e. Potter Airlines), there should not be duplicated routes with the same origin airport and destination airport. Please note that there might be multiple flights for a particular route (i.e. generally the same flight number), either recurring flights or flights on the same route occurring at different times (i.e. different flight number). We have taken this into consideration, and it is possible for multiple flights to correspond to one route. In order to retrieve the information only stored in the routes table (i.e. *base_fare*), we join the two tables on the foreign key of _flights_ table (i.e. the tuple *(origin_airport_code, destination_airport_code)*) which is the primary key of the _routes_ table.
@@ -108,40 +116,23 @@ We originally decided to include UUIDs for these tables, but we found out that t
 
 ## Pricing logic
 
-Kevin's existing fare and discount rules are retained. Base fare is multiplied by time, capacity, route demand, seasonal and holiday factors. A qualifying discount is then applied, subject to his minimum-fare eligibility rule. The final fare is bounded by 80% of base fare and CAD 1,500 for the supplied dataset.
+```text
+base_fare = 50 + 0.08 × distance_km
+fare_before_discount = base_fare × time_factor × capacity_factor
+                       × demand_factor × seasonal_factor × holiday_factor
+```
 
-- Time factor: up to 1 day = 1.00; over 1 through 7 days = 1.35; over 7 through 21 days = 1.10; otherwise 1.00.
-- Capacity factor: 1 + 0.45 × load factor; load factor = 1 − remaining seats / capacity.
-- Demand factor: 0.9 + 0.3 × assumed route popularity; unlisted city pairs default to 0.5. Both directions share a score.
-- Seasonal values come from config.py, with its source and modelling caveat retained.
-- Canadian default public-holiday calendar: 1.2 on a listed holiday/observed date, otherwise 1.0. The 20% premium is a project assumption.
-- Discounts: early booking at least 60 days ahead with load below 30% = 0.90; Tuesday/Wednesday = 0.95; less than four hours before departure = 0.85. Only the strongest discount applies. If it would go below the minimum fare, it is rejected under Kevin's rule.
+| Factor | Rule |
+| --- | --- |
+| Time | Less than 4 hours: 0.85; 4 hours through 1 day: 1.00; over 1 through 7 days: 1.35; over 7 through 21 days: 1.10; over 21 days: 1.00 |
+| Capacity | `1 + 0.45 × load_factor`, where `load_factor = 1 − seats_remaining / capacity` |
+| Demand | `0.9 + 0.3 × route_popularity`; unlisted city pairs use popularity 0.5, and both directions share a score |
+| Season | Monthly multipliers from `SEASONAL_FACTOR` in `config.py` |
+| Holiday | 1.20 on dates listed by the configured Canadian holiday calendar; otherwise 1.00 |
 
-Route popularity and premium magnitudes are simulation assumptions, not estimated market price elasticities. References for aircraft capacity and seasonality remain in config.py. No LLM or API is used.
+Discounts are 10% for departures at least 60 days away with load below 30%, 5% for Tuesday/Wednesday departures, and 15% for departures less than four hours away. Only the strongest qualifying discount is selected. It is rejected if it would reduce the fare below 80% of the base fare. The last-minute time factor and last-minute discount are separate multipliers.
 
-## Validation and limitations
-
-Tests cover boundary pricing, discounts, invalid inputs, composite flight identity, persistent orders, sold-out cancellation, repeated cancellation, parameter safety, concurrent booking and rollback on failed INSERT/DELETE. UI integration was separately checked using Kevin's actual dataset.
-
-Times are treated as naive project-local datetimes, without airport time-zone conversion. The synthetic schedule may contain unrealistic routes or aircraft assignments. Initial random occupied seats are baseline inventory, not customer orders; only new recorded orders can be cancelled. Cancellation removes an entire order and has no refund workflow or cancellation-history archive. A shared unauthenticated UI is intended for the class demo, not public airline operations.
-
-The inherited potterairline.ipynb is retained for reference, but contains older incompatible schemas/column names and destructive setup cells. Do not run it against this database. Use app.py and potterairline_tables.py as the supported workflow. Do not regenerate or reload data to refresh the UI: live inventory is read directly from SQLite.
-
-## Suggested 4–5 minute recording
-
-1. Launch the app and explain the route, flight and booking tables (0:00–0:45).
-2. Filter flights, compare fares and explain one price breakdown and discount (0:45–1:45).
-3. Book two seats; show the saved order, price and reduced availability (1:45–2:45).
-4. Cancel on Booked flights; show the order deleted and seats restored. Explain the parameterized DELETE and transaction (2:45–3:30).
-5. Run tests; demonstrate rejected overbooking or duplicate cancellation. Show Flight validation and vectorized load-factor calculation (3:30–4:45).
-
-AI assistance was used for UI integration, debugging and tests. The group must understand and explain all submitted code. Record and submit the demo separately.
-
-## Minimal-change revision
-
-This revision restores Kevin's book_flight validation order, cursor.execute style, printed messages and None-on-failure convention. cancel_booking retains his try/with/except/finally layout and False-on-failure convention. The UI checks return values before reporting success. Database errors roll back first, then print a message and return failure, rather than being exposed as exceptions to the UI.
-
-Necessary changes remain: use flight_id plus dep_date, store confirmed fare, DELETE the active order, preserve inventory during startup, adapt pricing to new field names and live data, and add the rubric-required Flight class. Wrapping the existing booking body in a transaction adds indentation; it does not replace the original sequence of checks. The read-only dataframe helpers are appended after the original functions. Existing pricing rules, generators, capacities, route data and seasonal constants are unchanged.
+The result is bounded by 80% of base fare and CAD 1,500 for the supplied dataset, then rounded to two decimal places. Departed flights receive no valid fare. For example, a CAD 200 base fare, 30 days until departure, 50 of 100 seats remaining, popularity 0.5, and neutral season/holiday factors gives **CAD 257.25** on a day without a midweek discount.
 
 
 ## Testing:
@@ -149,3 +140,37 @@ Necessary changes remain: use flight_id plus dep_date, store confirmed fare, DEL
 pytest booking_test.py
 python test_project.py
 python pricing_test.py
+
+
+
+## Main files
+
+| File | Responsibility |
+| --- | --- |
+| `app.py` | Streamlit interface |
+| `booking.py`, `flight.py` | Booking/cancellation transactions and flight validation |
+| `functional_queries.py` | Search, filtering, pricing, and sorting |
+| `pricing_function_new.py`, `fare.py` | Dynamic pricing and distance-based base fares |
+| `config.py` | Capacities, seasonal factors, airport labels, and source notes |
+| `gendb.py`, `calculate_distances.py` | Synthetic flights and approximate distances |
+| `main.py`, `potterairline_tables.py` | Dataset generation, schema creation, and database loading |
+| `flights.csv`, `distances.csv`, `flights_database.db` | Code-generated data and persistent storage |
+| `pricing_test.py` | Standalone pricing assertions |
+| `assets/`, `docs/` | Interface branding and supporting documentation |
+
+
+## Assumptions and limitations
+
+- Route popularity and pricing premiums are modelling assumptions, not estimates of real market fares. Capacity and seasonal source notes are recorded in `config.py`; the holiday-calendar reference is recorded in `pricing_function_new.py`.
+- Seasonal factors use aggregate U.S. passenger patterns from December 2021 through December 2024 as a proxy for this Canadian simulation. They are not route-specific demand forecasts.
+- Distances are approximate city-to-city distances. Random schedules and aircraft assignments may not reflect actual airline operations.
+- Times are treated as local naive datetimes, without airport time-zone conversion.
+- All users share one booking list. Authentication, payments, refunds, and cancellation history are outside the project scope.
+- Initially occupied seats are synthetic baseline inventory, not recorded orders. Only bookings created in the application can be cancelled.
+- The fixed upper fare limit is designed for this dataset; substantially larger base fares would require revisiting the minimum/maximum rules.
+- The interface uses the supplied database; it does not automatically initialize a missing database. The inherited notebook is not required for the application workflow.
+
+
+## Acknowledgement
+
+Generative AI tools assisted with development, UI integration, debugging, and test preparation. For the purpose of this project, pricing is determined by rules set by Team 14 members.
